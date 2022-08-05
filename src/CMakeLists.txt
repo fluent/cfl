@@ -1,5 +1,7 @@
 set(src
   cfl.c
+  cfl_kv.c
+  cfl_log.c
   cfl_sds.c
   cfl_time.c
   )
