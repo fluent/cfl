@@ -23,6 +23,7 @@
 /* headers that are needed in general */
 #include <cfl/cfl_info.h>
 #include <cfl/cfl_version.h>
+#include <cfl/cfl_log.h>
 #include <cfl/cfl_sds.h>
 #include <cfl/cfl_list.h>
 
