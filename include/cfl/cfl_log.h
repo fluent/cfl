@@ -30,4 +30,6 @@ int cfl_report_runtime_error_impl(int errnum, char *file, int line);
 #define cfl_report_runtime_error() cfl_report_runtime_error_impl(errno, __FILE__, __LINE__)
 #endif
 
+#define cfl_errno() do {} while (0)
+
 #endif
