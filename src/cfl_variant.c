@@ -20,7 +20,7 @@
 #include <cfl/cfl.h>
 #include <cfl/cfl_variant.h>
 #include <cfl/cfl_array.h>
-#include <cfl/cfl_kv.h>
+#include <cfl/cfl_kvlist.h>
 
 struct cfl_variant *cfl_variant_create_from_string(char *value)
 {
@@ -114,14 +114,14 @@ struct cfl_variant *cfl_variant_create_from_array(struct cfl_array *value)
     return instance;
 }
 
-struct cfl_variant *cfl_variant_create_from_kv(struct cfl_list *value)
+struct cfl_variant *cfl_variant_create_from_kvlist(struct cfl_kvlist *value)
 {
     struct cfl_variant *instance;
 
     instance = cfl_variant_create();
     if (instance != NULL) {
         instance->data.as_kv = value;
-        instance->type = CFL_VARIANT_KV;
+        instance->type = CFL_VARIANT_KVLIST;
     }
 
     return instance;
@@ -168,8 +168,8 @@ void cfl_variant_destroy(struct cfl_variant *instance)
     else if (instance->type == CFL_VARIANT_ARRAY) {
         cfl_array_destroy(instance->data.as_array);
     }
-    else if (instance->type == CFL_VARIANT_KV) {
-        cfl_kv_release(instance->data.as_kv);
+    else if (instance->type == CFL_VARIANT_KVLIST) {
+        cfl_kvlist_destroy(instance->data.as_kv);
     }
 
     free(instance);

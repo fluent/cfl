@@ -25,12 +25,12 @@
 #define CFL_VARIANT_INT       3
 #define CFL_VARIANT_DOUBLE    4
 #define CFL_VARIANT_ARRAY     5
-#define CFL_VARIANT_KV        6
+#define CFL_VARIANT_KVLIST    6
 #define CFL_VARIANT_BYTES     7
 #define CFL_VARIANT_REFERENCE 8
 
 struct cfl_array;
-struct cfl_kv;
+struct cfl_kvlist;
 
 struct cfl_variant {
     int type;
@@ -43,7 +43,7 @@ struct cfl_variant {
         double as_double;
         void *as_reference;
         struct cfl_array *as_array;
-        struct cfl_list *as_kv;
+        struct cfl_kvlist *as_kv;
     } data;
 };
 
@@ -53,7 +53,7 @@ struct cfl_variant *cfl_variant_create_from_bool(int value);
 struct cfl_variant *cfl_variant_create_from_int(int value);
 struct cfl_variant *cfl_variant_create_from_double(double value);
 struct cfl_variant *cfl_variant_create_from_array(struct cfl_array *value);
-struct cfl_variant *cfl_variant_create_from_kv(struct cfl_list *value);
+struct cfl_variant *cfl_variant_create_from_kvlist(struct cfl_kvlist *value);
 struct cfl_variant *cfl_variant_create_from_reference(void *value);
 struct cfl_variant *cfl_variant_create();
 

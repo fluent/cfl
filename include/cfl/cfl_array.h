@@ -54,6 +54,6 @@ int cfl_array_append_int(struct cfl_array *array, int value);
 int cfl_array_append_double(struct cfl_array *array, double value);
 int cfl_array_append_array(struct cfl_array *array, struct cfl_array *value);
 int cfl_array_append_new_array(struct cfl_array *array, size_t size);
-int cfl_array_append_kv(struct cfl_array *array, struct cfl_list *value);
+int cfl_array_append_kv(struct cfl_array *array, struct cfl_kvlist *value);
 
 #endif

@@ -325,12 +325,12 @@ int cfl_array_append_new_array(struct cfl_array *array, size_t size)
     return result;
 }
 
-int cfl_array_append_kv(struct cfl_array *array, struct cfl_list *value)
+int cfl_array_append_kv(struct cfl_array *array, struct cfl_kvlist *value)
 {
     struct cfl_variant *value_instance;
     int                 result;
 
-    value_instance = cfl_variant_create_from_kv(value);
+    value_instance = cfl_variant_create_from_kvlist(value);
     if (value_instance == NULL) {
         return -1;
     }
