@@ -32,10 +32,16 @@ uint64_t cfl_time_now()
 {
     struct timespec tm = {0};
 
-#if defined CFL_HAVE_TIMESPEC_GET
-    /* C11 supported */
-    timespec_get(&tm, TIME_UTC);
-#elif defined CFL_HAVE_CLOCK_GET_TIME
+    /*
+     * macOS note: newer versions of macOS provides a timespec_get() function, but for
+     * some reason it does not provide full nanoseconds resolution, last 3 digits are
+     * always zeros.
+     *
+     * if CFL_HAVE_CLOCK_GET_TIME and CFL_HAVE_TIMESPEC_GET are defined, let's
+     * prioritize CFL_HAVE_CLOCK_GET_TIME.
+     */
+
+#if defined CFL_HAVE_CLOCK_GET_TIME
     /* MacOS */
     clock_serv_t cclock;
     mach_timespec_t mts;
@@ -44,6 +50,10 @@ uint64_t cfl_time_now()
     tm.tv_sec = mts.tv_sec;
     tm.tv_nsec = mts.tv_nsec;
     mach_port_deallocate(mach_task_self(), cclock);
+#elif defined CFL_HAVE_TIMESPEC_GET
+    /* C11 supported */
+    timespec_get(&tm, TIME_UTC);
+
 #else /* __STDC_VERSION__ */
     clock_gettime(CLOCK_REALTIME, &tm);
 #endif
