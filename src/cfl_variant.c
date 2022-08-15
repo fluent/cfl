@@ -75,13 +75,13 @@ struct cfl_variant *cfl_variant_create_from_bool(int value)
     return instance;
 }
 
-struct cfl_variant *cfl_variant_create_from_int(int value)
+struct cfl_variant *cfl_variant_create_from_int64(int64_t value)
 {
     struct cfl_variant *instance;
 
     instance = cfl_variant_create();
     if (instance != NULL) {
-        instance->data.as_int = value;
+        instance->data.as_int64 = value;
         instance->type = CFL_VARIANT_INT;
     }
 

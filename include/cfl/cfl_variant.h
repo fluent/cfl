@@ -39,7 +39,7 @@ struct cfl_variant {
         cfl_sds_t as_string;
         cfl_sds_t as_bytes;
         unsigned int as_bool;
-        int as_int;
+        int64_t as_int64;
         double as_double;
         void *as_reference;
         struct cfl_array *as_array;
@@ -50,7 +50,7 @@ struct cfl_variant {
 struct cfl_variant *cfl_variant_create_from_string(char *value);
 struct cfl_variant *cfl_variant_create_from_bytes(char *value, size_t length);
 struct cfl_variant *cfl_variant_create_from_bool(int value);
-struct cfl_variant *cfl_variant_create_from_int(int value);
+struct cfl_variant *cfl_variant_create_from_int64(int64_t value);
 struct cfl_variant *cfl_variant_create_from_double(double value);
 struct cfl_variant *cfl_variant_create_from_array(struct cfl_array *value);
 struct cfl_variant *cfl_variant_create_from_kvlist(struct cfl_kvlist *value);
