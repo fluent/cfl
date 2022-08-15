@@ -238,12 +238,12 @@ int cfl_array_append_bool(struct cfl_array *array, int value)
     return 0;
 }
 
-int cfl_array_append_int(struct cfl_array *array, int value)
+int cfl_array_append_int(struct cfl_array *array, int64_t value)
 {
     struct cfl_variant *value_instance;
     int                 result;
 
-    value_instance = cfl_variant_create_from_int(value);
+    value_instance = cfl_variant_create_from_int64(value);
 
     if (value_instance == NULL) {
         return -1;
@@ -253,7 +253,6 @@ int cfl_array_append_int(struct cfl_array *array, int value)
 
     if (result) {
         cfl_variant_destroy(value_instance);
-
         return -2;
     }
 
