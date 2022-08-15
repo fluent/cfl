@@ -190,12 +190,12 @@ int cfl_kvlist_insert_bool(struct cfl_kvlist *list,
 }
 
 int cfl_kvlist_insert_int(struct cfl_kvlist *list,
-                          char *key, int value)
+                          char *key, int64_t value)
 {
     struct cfl_variant *value_instance;
     int                 result;
 
-    value_instance = cfl_variant_create_from_int(value);
+    value_instance = cfl_variant_create_from_int64(value);
 
     if (value_instance == NULL) {
         return -1;
