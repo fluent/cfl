@@ -25,10 +25,11 @@
  * - https://github.com/monkey/monkey
  */
 
-#ifndef   	CFL_LIST_H_
-#define   	CFL_LIST_H_
+#ifndef CFL_LIST_H_
+#define CFL_LIST_H_
 
 #include <stddef.h>
+#include "cfl.h"
 
 #ifdef _WIN32
 /* Windows */
@@ -46,8 +47,7 @@
       (type *)( (char *)__mptr - offsetof(type,member) );})
 #endif
 
-struct cfl_list
-{
+struct cfl_list {
     struct cfl_list *prev, *next;
 };
 
@@ -57,8 +57,9 @@ static inline void cfl_list_init(struct cfl_list *list)
     list->prev = list;
 }
 
-static inline void __cfl_list_add(struct cfl_list *_new, struct cfl_list *prev,
-                                 struct cfl_list *next)
+static inline void __cfl_list_add(struct cfl_list *_new,
+                                  struct cfl_list *prev,
+                                  struct cfl_list *next)
 {
     next->prev = _new;
     _new->next = next;
@@ -66,30 +67,33 @@ static inline void __cfl_list_add(struct cfl_list *_new, struct cfl_list *prev,
     prev->next = _new;
 }
 
-static inline void cfl_list_add(struct cfl_list *_new, struct cfl_list *head)
+static inline void cfl_list_add(struct cfl_list *_new,
+                                struct cfl_list *head)
 {
     __cfl_list_add(_new, head->prev, head);
 }
 
 static inline void cfl_list_add_after(struct cfl_list *_new,
-                                     struct cfl_list *prev,
-                                     struct cfl_list *head)
+                                      struct cfl_list *prev,
+                                      struct cfl_list *head)
 {
     struct cfl_list *next;
 
-    if (head->prev == head->next || head->prev == prev) {
+    if (head->prev == head->next ||
+        head->prev == prev) {
         cfl_list_add(_new, head);
-        return;
     }
-
-    next = prev->next;
-    next->prev = prev;
-    _new->next = next;
-    _new->prev = prev;
-    prev->next = _new;
+    else {
+        next = prev->next;
+        next->prev = prev;
+        _new->next = next;
+        _new->prev = prev;
+        prev->next = _new;
+    }
 }
 
-static inline void __cfl_list_del(struct cfl_list *prev, struct cfl_list *next)
+static inline void __cfl_list_del(struct cfl_list *prev,
+                                  struct cfl_list *next)
 {
     prev->next = next;
     next->prev = prev;
@@ -98,23 +102,18 @@ static inline void __cfl_list_del(struct cfl_list *prev, struct cfl_list *next)
 static inline void cfl_list_del(struct cfl_list *entry)
 {
     __cfl_list_del(entry->prev, entry->next);
+
     entry->prev = NULL;
     entry->next = NULL;
 }
 
 static inline int cfl_list_is_empty(struct cfl_list *head)
 {
-    if (head->next == head) return 0;
-    else return -1;
-}
-
-static inline int cfl_list_is_set(struct cfl_list *head)
-{
-    if (head->next && head->prev) {
+    if (head->next == head) {
         return 0;
     }
 
-    return -1;
+    else return -1;
 }
 
 static inline int cfl_list_size(struct cfl_list *head)
@@ -123,16 +122,25 @@ static inline int cfl_list_size(struct cfl_list *head)
     struct cfl_list *it;
 
     for (it = head->next; it != head; it = it->next, ret++);
+
     return ret;
 }
 
-static inline int cfl_list_entry_orphan(struct cfl_list *head)
+static inline void cfl_list_entry_init(struct cfl_list *entry)
 {
-    if (head->next && head->prev) {
-        return 0;
+    entry->next = NULL;
+    entry->prev = NULL;
+}
+
+static inline int cfl_list_entry_is_orphan(struct cfl_list *entry)
+{
+    if (entry->next != NULL &&
+        entry->prev != NULL &&
+        entry->next != entry->prev) {
+        return CFL_FALSE;
     }
 
-    return -1;
+    return CFL_TRUE;
 }
 
 static inline void cfl_list_cat(struct cfl_list *list, struct cfl_list *head)
