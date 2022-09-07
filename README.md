@@ -12,6 +12,7 @@ note: The name doesn't mean anything specific, you can call it `c:\ floppy` if y
 - cfl_array: array of elements
 - cfl_variant: interface to manage contexts with vairant types
 - cfl_time: time utilities
+- cfl_hash: 64bit hashing functions
 
 ## License
 
