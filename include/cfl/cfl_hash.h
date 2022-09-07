@@ -22,6 +22,7 @@
 
 /* NOTE: this is just a wrapper for naming convention */
 
+#include <stdint.h>
 #include <xxh3.h>
 
 #define cfl_hash_state_t       XXH3_state_t
