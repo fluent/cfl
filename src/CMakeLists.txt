@@ -11,6 +11,7 @@ set(src
 
 # Static Library
 add_library(cfl-static STATIC ${src})
+target_link_libraries(cfl-static xxhash)
 
 # Install Library
 if(MSVC)

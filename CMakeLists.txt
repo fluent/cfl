@@ -110,9 +110,20 @@ configure_file(
 
 # Include headers and dependency headers
 include_directories(
+  lib/xxHash-0.8.1/
   include
   )
 
+# xxHash
+if(NOT TARGET xxhash)
+  # Do something when target found
+  set(XXHASH_BUILD_ENABLE_INLINE_API OFF)
+  set(XXHASH_BUILD_XXHSUM OFF)
+  set(BUILD_SHARED_LIBS OFF)
+  add_subdirectory(lib/xxHash-0.8.1/cmake_unofficial EXCLUDE_FROM_ALL)
+endif()
+
+# CFL sources
 add_subdirectory(src)
 
 # Tests

@@ -17,20 +17,17 @@
  *  limitations under the License.
  */
 
-#ifndef CFL_H
-#define CFL_H
+#ifndef CFL_HASH_H
+#define CFL_HASH_H
 
-#define CFL_FALSE   0
-#define CFL_TRUE    !CFL_FALSE
+/* NOTE: this is just a wrapper for naming convention */
 
-/* headers that are needed in general */
-#include <cfl/cfl_info.h>
-#include <cfl/cfl_version.h>
-#include <cfl/cfl_log.h>
-#include <cfl/cfl_sds.h>
-#include <cfl/cfl_list.h>
-#include <cfl/cfl_hash.h>
+#include <xxh3.h>
 
-int clf_init();
+#define cfl_hash_state_t       XXH3_state_t
+#define cfl_hash_64bits_reset  XXH3_64bits_reset
+#define cfl_hash_64bits_update XXH3_64bits_update
+#define cfl_hash_64bits_digest XXH3_64bits_digest
+#define cfl_hash_64bits        XXH3_64bits
 
 #endif
