@@ -135,8 +135,7 @@ static inline void cfl_list_entry_init(struct cfl_list *entry)
 static inline int cfl_list_entry_is_orphan(struct cfl_list *entry)
 {
     if (entry->next != NULL &&
-        entry->prev != NULL &&
-        entry->next != entry->prev) {
+        entry->prev != NULL) {
         return CFL_FALSE;
     }
 
