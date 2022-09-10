@@ -25,17 +25,17 @@
  * - https://github.com/monkey/monkey
  */
 
-#ifndef CFL_LIST_H_
-#define CFL_LIST_H_
+#ifndef CFL_LIST_H
+#define CFL_LIST_H
 
 #include <stddef.h>
-#include "cfl.h"
+#include <stdint.h>
 
 #ifdef _WIN32
 /* Windows */
 #define container_of(address, type, field) ((type *)(                   \
-                                                     (PCHAR)(address) - \
-                                                     (ULONG_PTR)(&((type *)0)->field)))
+                                                     (unsigned char)(address) - \
+                                                     (intptr_t)(&((type *)0)->field)))
 #else
 /* Rest of the world */
 #ifndef offsetof
@@ -110,10 +110,10 @@ static inline void cfl_list_del(struct cfl_list *entry)
 static inline int cfl_list_is_empty(struct cfl_list *head)
 {
     if (head->next == head) {
-        return CFL_TRUE;
+        return 1;
     }
 
-    return CFL_FALSE;
+    return 0;
 }
 
 static inline int cfl_list_size(struct cfl_list *head)
