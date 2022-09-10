@@ -23,6 +23,9 @@
 
 #include <cfl/cfl_log.h>
 
+#ifdef _WIN32
+    #define strerror_r(errnum, buf, buf_size) strerror_s(buf, buf_size, errnum)
+#endif
 
 int cfl_report_runtime_error_impl(int errnum, char *file, int line)
 {
