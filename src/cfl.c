@@ -17,7 +17,7 @@
  *  limitations under the License.
  */
 
-int clf_init()
+int cfl_init()
 {
     return 0;
 }
