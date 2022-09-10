@@ -17,26 +17,26 @@
  *  limitations under the License.
  */
 
-#ifndef CFL_H
-#define CFL_H
+/*
+ * This file contains compatibility functions and macros for various platforms.
+ *
+ * Including this header file should make platforms behave more consistently;
+ * Add more macros if you find any missing features.
+ */
 
-#define CFL_FALSE   0
-#define CFL_TRUE    !CFL_FALSE
+#ifndef CFL_COMPAT_H
+#define CFL_COMPAT_H
 
-/* headers that are needed in general */
-#include <cfl/cfl_info.h>
-#include <cfl/cfl_version.h>
-#include <cfl/cfl_compat.h>
-#include <cfl/cfl_log.h>
-#include <cfl/cfl_sds.h>
-#include <cfl/cfl_list.h>
-#include <cfl/cfl_hash.h>
-#include <cfl/cfl_array.h>
-#include <cfl/cfl_kv.h>
-#include <cfl/cfl_kvlist.h>
-#include <cfl/cfl_time.h>
-#include <cfl/cfl_variant.h>
+#ifdef CFL_SYSTEM_WINDOWS
 
-int clf_init();
+/*
+ * Windows prefer to add an underscore to each POSIX function.
+ * To suppress compiler warnings, we need these trivial macros.
+ */
+#define timezone _timezone
+#define tzname _tzname
+#define strncasecmp _strnicmp
+#define timegm _mkgmtime
 
+#endif
 #endif
