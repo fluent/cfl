@@ -33,16 +33,16 @@
 
 #ifdef _WIN32
 /* Windows */
-#define container_of(address, type, field) ((type *)(                   \
-                                                     (unsigned char)(address) - \
-                                                     (intptr_t)(&((type *)0)->field)))
+#define cfl_container_of(address, type, field) ((type *)(                   \
+                                                        (unsigned char)(address) - \
+                                                        (intptr_t)(&((type *)0)->field)))
 #else
 /* Rest of the world */
 #ifndef offsetof
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 #endif
 
-#define container_of(ptr, type, member) ({                      \
+#define cfl_container_of(ptr, type, member) ({                  \
       const typeof( ((type *)0)->member ) *__mptr = (ptr);      \
       (type *)( (char *)__mptr - offsetof(type,member) );})
 #endif
@@ -162,7 +162,7 @@ static inline void cfl_list_cat(struct cfl_list *list, struct cfl_list *head)
 #define cfl_list_foreach_safe_r(curr, n, head) \
     for (curr = (head)->prev, n = curr->prev; curr != (head); curr = n, n = curr->prev)
 
-#define cfl_list_entry( ptr, type, member ) container_of( ptr, type, member )
+#define cfl_list_entry( ptr, type, member ) cfl_container_of( ptr, type, member )
 
 /*
  * First node of the list
@@ -174,7 +174,7 @@ static inline void cfl_list_cat(struct cfl_list *list, struct cfl_list *head)
  * If exists some possiblity that your code handle an empty list, use cfl_list_is_empty()
  * previously to check if its empty or not.
  */
-#define cfl_list_entry_first(ptr, type, member) container_of((ptr)->next, type, member)
+#define cfl_list_entry_first(ptr, type, member) cfl_container_of((ptr)->next, type, member)
 
 /* First node of the list
  * ---------------------
@@ -185,11 +185,11 @@ static inline void cfl_list_cat(struct cfl_list *list, struct cfl_list *head)
  * If exists some possiblity that your code handle an empty list, use cfl_list_is_empty()
  * previously to check if its empty or not.
  */
-#define cfl_list_entry_last(ptr, type, member) container_of((ptr)->prev, type, member)
+#define cfl_list_entry_last(ptr, type, member) cfl_container_of((ptr)->prev, type, member)
 
 /* Next node */
 #define cfl_list_entry_next(ptr, type, member, head)                     \
-    (ptr)->next == (head) ? container_of((head)->next, type, member) :  \
-        container_of((ptr)->next, type, member);
+    (ptr)->next == (head) ? cfl_container_of((head)->next, type, member) :  \
+        cfl_container_of((ptr)->next, type, member);
 
 #endif /* !cfl_list_H_ */
