@@ -6,7 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # C Floppy Version
 set(CFL_VERSION_MAJOR  0)
 set(CFL_VERSION_MINOR  1)
-set(CFL_VERSION_PATCH  2)
+set(CFL_VERSION_PATCH  3)
 set(CFL_VERSION_STR    "${CFL_VERSION_MAJOR}.${CFL_VERSION_MINOR}.${CFL_VERSION_PATCH}")
 
 # Configuration options
@@ -110,7 +110,7 @@ configure_file(
 
 # Include headers and dependency headers
 include_directories(
-  lib/xxHash-0.8.1/
+  lib/xxhash/
   include
   )
 
@@ -120,7 +120,7 @@ if(NOT TARGET xxhash)
   set(XXHASH_BUILD_ENABLE_INLINE_API OFF)
   set(XXHASH_BUILD_XXHSUM OFF)
   set(BUILD_SHARED_LIBS OFF)
-  add_subdirectory(lib/xxHash-0.8.1/cmake_unofficial EXCLUDE_FROM_ALL)
+  add_subdirectory(lib/xxhash/cmake_unofficial EXCLUDE_FROM_ALL)
 endif()
 
 # CFL sources
