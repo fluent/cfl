@@ -31,4 +31,7 @@
 #define cfl_hash_64bits_digest XXH3_64bits_digest
 #define cfl_hash_64bits        XXH3_64bits
 
+#define cfl_hash_128bits_t     XXH128_hash_t
+#define cfl_hash_128bits       XXH3_128bits
+
 #endif
