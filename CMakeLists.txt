@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.12)
 project(cfl C)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -121,6 +121,16 @@ if(NOT TARGET xxhash)
   set(XXHASH_BUILD_XXHSUM OFF)
   set(BUILD_SHARED_LIBS OFF)
   add_subdirectory(lib/xxhash/cmake_unofficial EXCLUDE_FROM_ALL)
+endif()
+
+# Installation Directories
+# ========================
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  set(CFL_INSTALL_BINDIR "bin")
+  set(CFL_INSTALL_LIBDIR "lib")
+else()
+  set(CFL_INSTALL_BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
+  set(CFL_INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
 endif()
 
 # CFL sources

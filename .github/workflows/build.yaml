@@ -60,7 +60,7 @@ jobs:
 
       - name: Run compilation
         run: |
-          cmake3 -DCFL_DEV=on .
+          cmake -DCFL_DEV=on .
           make
 
   build-unix-arm64:
