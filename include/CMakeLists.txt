@@ -1,0 +1,5 @@
+file(GLOB cflHeaders "cfl/*.h")
+install(FILES ${cflHeaders}
+    DESTINATION ${CFL_INSTALL_INCLUDEDIR}/cfl
+    COMPONENT headers
+    PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
