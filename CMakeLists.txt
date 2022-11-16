@@ -128,12 +128,15 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   set(CFL_INSTALL_BINDIR "bin")
   set(CFL_INSTALL_LIBDIR "lib")
+  set(CFL_INSTALL_INCLUDEDIR "include")
 else()
   set(CFL_INSTALL_BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
   set(CFL_INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+  set(CFL_INSTALL_INCLUDEDIR "${CMAKE_INSTALL_PREFIX}/include")
 endif()
 
 # CFL sources
+add_subdirectory(include)
 add_subdirectory(src)
 
 # Tests
