@@ -10,8 +10,9 @@ set(CFL_VERSION_PATCH  9)
 set(CFL_VERSION_STR    "${CFL_VERSION_MAJOR}.${CFL_VERSION_MINOR}.${CFL_VERSION_PATCH}")
 
 # Configuration options
-option(CFL_DEV             "Enable development mode"                   No)
-option(CFL_TESTS           "Enable unit testing"                       No)
+option(CFL_DEV                            "Enable development mode"                    No)
+option(CFL_TESTS                          "Enable unit testing"                        No)
+option(CFL_INSTALL_BUNDLED_XXHASH_HEADERS "Enable bundled xxHash headers installation" Yes)
 
 if(CFL_DEV)
   set(CMAKE_BUILD_TYPE Debug)
@@ -135,6 +136,10 @@ else()
   set(CFL_INSTALL_INCLUDEDIR "${CMAKE_INSTALL_PREFIX}/include")
 endif()
 
+# Output paths
+set(CFL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
+set(CFL_BUILD_DIR "${CFL_ROOT}/build")
+
 # CFL sources
 add_subdirectory(include)
 add_subdirectory(src)
@@ -144,10 +149,6 @@ if(CFL_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
-
-# Output paths
-set(CFL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
-set(CFL_BUILD_DIR "${CFL_ROOT}/build")
 
 # Installer Generation (Cpack)
 # ============================
