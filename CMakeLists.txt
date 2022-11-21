@@ -135,6 +135,10 @@ else()
   set(CFL_INSTALL_INCLUDEDIR "${CMAKE_INSTALL_PREFIX}/include")
 endif()
 
+# Output paths
+set(CFL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
+set(CFL_BUILD_DIR "${CFL_ROOT}/build")
+
 # CFL sources
 add_subdirectory(include)
 add_subdirectory(src)
@@ -144,10 +148,6 @@ if(CFL_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
-
-# Output paths
-set(CFL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
-set(CFL_BUILD_DIR "${CFL_ROOT}/build")
 
 # Installer Generation (Cpack)
 # ============================
