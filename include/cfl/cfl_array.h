@@ -43,6 +43,11 @@ static inline struct cfl_variant *cfl_array_fetch_by_index(struct cfl_array *arr
     return array->entries[position];
 }
 
+static inline size_t cfl_array_size(struct cfl_array *array)
+{
+    return array->entry_count;
+}
+
 int cfl_array_resizable(struct cfl_array *array, int v);
 int cfl_array_remove_by_index(struct cfl_array *array, size_t position);
 int cfl_array_remove_by_reference(struct cfl_array *array, struct cfl_variant *value);
