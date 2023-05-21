@@ -48,7 +48,7 @@ static void test_append_fetch()
     }
 
     for (i=0; i<(int)array_size; i++) {
-        ret = cfl_array_append_int64(array, (int64_t)i);
+        ret = cfl_array_append_int64(array, i);
         if (!TEST_CHECK(ret == 0)) {
             TEST_MSG("%d: cfl_array_append_int64 failed.",i);
             cfl_array_destroy(array);
@@ -94,7 +94,7 @@ static void test_remove_by_index()
     }
 
     for (i=0; i<(int)array_size; i++) {
-        ret = cfl_array_append_int64(array, (int64_t)i);
+        ret = cfl_array_append_int64(array, i);
         if (!TEST_CHECK(ret == 0)) {
             TEST_MSG("%d: cfl_array_append_int64 failed.",i);
             cfl_array_destroy(array);
@@ -147,7 +147,7 @@ static void test_remove_by_reference()
     }
 
     for (i=0; i<(int)array_size; i++) {
-        ret = cfl_array_append_int64(array, (int64_t)i);
+        ret = cfl_array_append_int64(array, i);
         if (!TEST_CHECK(ret == 0)) {
             TEST_MSG("%d: cfl_array_append_int64 failed.",i);
             cfl_array_destroy(array);
