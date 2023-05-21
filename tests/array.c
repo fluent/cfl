@@ -69,7 +69,7 @@ static void test_append_fetch()
             return;
         }
         else if (!TEST_CHECK(i == (int)val->data.as_int64)) {
-            TEST_MSG("%d: mismatch. got=%d expect=%d",i, (int)val->data.as_int64, i);
+            TEST_MSG("%d: mismatch. got=%" PRId64 " expect=%d",i, val->data.as_int64, i);
             cfl_array_destroy(array);
             return;
         }
@@ -122,7 +122,7 @@ static void test_remove_by_index()
             return;
         }
         else if (!TEST_CHECK(expect[i] == (int)val->data.as_int64)) {
-            TEST_MSG("%d: mismatch. got=%d expect=%d",i, (int)val->data.as_int64, expect[i]);
+            TEST_MSG("%d: mismatch. got=%" PRId64 " expect=%d",i, val->data.as_int64, expect[i]);
             cfl_array_destroy(array);
             return;
         }
@@ -181,7 +181,7 @@ static void test_remove_by_reference()
             return;
         }
         else if (!TEST_CHECK(expect[i] == (int)val->data.as_int64)) {
-            TEST_MSG("%d: mismatch. got=%d expect=%d",i, (int)val->data.as_int64, expect[i]);
+            TEST_MSG("%d: mismatch. got=%" PRId64 " expect=%d",i, val->data.as_int64, expect[i]);
             cfl_array_destroy(array);
             return;
         }
