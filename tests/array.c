@@ -35,7 +35,7 @@ static void test_create_destroy()
 
 static void test_append_fetch()
 {
-    int i;
+    ssize_t index;
     int ret;
     size_t array_size = 10;
     struct cfl_array *array = NULL;
@@ -47,29 +47,29 @@ static void test_append_fetch()
         return;
     }
 
-    for (i=0; i<(int)array_size; i++) {
-        ret = cfl_array_append_int64(array, i);
+    for (index=0; index<(ssize_t)array_size; index++) {
+        ret = cfl_array_append_int64(array, index);
         if (!TEST_CHECK(ret == 0)) {
-            TEST_MSG("%d: cfl_array_append_int64 failed.",i);
+            TEST_MSG("%zd: cfl_array_append_int64 failed.",index);
             cfl_array_destroy(array);
             return;
         }
     }
 
-    for (i=0; i<(int)cfl_array_size(array); i++) {
-        val = cfl_array_fetch_by_index(array, i);
+    for (index=0; index<(ssize_t)cfl_array_size(array); index++) {
+        val = cfl_array_fetch_by_index(array, index);
         if (!TEST_CHECK(val != NULL)) {
-            TEST_MSG("%d: val is NULL",i);
+            TEST_MSG("%zd: val is NULL",index);
             cfl_array_destroy(array);
             return;
         }
         else if (!TEST_CHECK(val->type == CFL_VARIANT_INT)) {
-            TEST_MSG("%d: type is not int. type=%d",i, val->type);
+            TEST_MSG("%zd: type is not int. type=%d",index, val->type);
             cfl_array_destroy(array);
             return;
         }
-        else if (!TEST_CHECK(i == (int)val->data.as_int64)) {
-            TEST_MSG("%d: mismatch. got=%" PRId64 " expect=%d",i, val->data.as_int64, i);
+        else if (!TEST_CHECK(index == (ssize_t)val->data.as_int64)) {
+            TEST_MSG("%zd: mismatch. got=%" PRId64 " expect=%zd",index, val->data.as_int64, index);
             cfl_array_destroy(array);
             return;
         }
@@ -80,9 +80,9 @@ static void test_append_fetch()
 
 static void test_remove_by_index()
 {
-    int i;
+    ssize_t index;
     int ret;
-    int expect[] = {0,1,2,3,4,6,7,8,9}; /* remove 5 */
+    int64_t expect[] = {0,1,2,3,4,6,7,8,9}; /* remove 5 */
     size_t array_size = 10;
     struct cfl_array *array = NULL;
     struct cfl_variant *val = NULL;
@@ -93,10 +93,10 @@ static void test_remove_by_index()
         return;
     }
 
-    for (i=0; i<(int)array_size; i++) {
-        ret = cfl_array_append_int64(array, i);
+    for (index=0; index<(ssize_t)array_size; index++) {
+        ret = cfl_array_append_int64(array, index);
         if (!TEST_CHECK(ret == 0)) {
-            TEST_MSG("%d: cfl_array_append_int64 failed.",i);
+            TEST_MSG("%zd: cfl_array_append_int64 failed.",index);
             cfl_array_destroy(array);
             return;
         }
@@ -109,20 +109,20 @@ static void test_remove_by_index()
         return;
     }
 
-    for (i=0; i<(int)cfl_array_size(array); i++) {
-        val = cfl_array_fetch_by_index(array, i);
+    for (index=0; index<(ssize_t)cfl_array_size(array); index++) {
+        val = cfl_array_fetch_by_index(array, index);
         if (!TEST_CHECK(val != NULL)) {
-            TEST_MSG("%d: val is NULL",i);
+            TEST_MSG("%zd: val is NULL",index);
             cfl_array_destroy(array);
             return;
         }
         else if (!TEST_CHECK(val->type == CFL_VARIANT_INT)) {
-            TEST_MSG("%d: type is not int. type=%d",i, val->type);
+            TEST_MSG("%zd: type is not int. type=%d",index, val->type);
             cfl_array_destroy(array);
             return;
         }
-        else if (!TEST_CHECK(expect[i] == (int)val->data.as_int64)) {
-            TEST_MSG("%d: mismatch. got=%" PRId64 " expect=%d",i, val->data.as_int64, expect[i]);
+        else if (!TEST_CHECK(expect[index] == val->data.as_int64)) {
+            TEST_MSG("%zd: mismatch. got=%" PRId64 " expect=" PRId64,index, val->data.as_int64, expect[index]);
             cfl_array_destroy(array);
             return;
         }
@@ -133,7 +133,7 @@ static void test_remove_by_index()
 
 static void test_remove_by_reference()
 {
-    int i;
+    ssize_t index;
     int ret;
     int expect[] = {0,1,2,3,4,6,7,8,9}; /* remove 5 */
     size_t array_size = 10;
@@ -146,10 +146,10 @@ static void test_remove_by_reference()
         return;
     }
 
-    for (i=0; i<(int)array_size; i++) {
-        ret = cfl_array_append_int64(array, i);
+    for (index=0; index<(ssize_t)array_size; index++) {
+        ret = cfl_array_append_int64(array, index);
         if (!TEST_CHECK(ret == 0)) {
-            TEST_MSG("%d: cfl_array_append_int64 failed.",i);
+            TEST_MSG("%zd: cfl_array_append_int64 failed.",index);
             cfl_array_destroy(array);
             return;
         }
@@ -168,20 +168,20 @@ static void test_remove_by_reference()
         return;
     }
 
-    for (i=0; i<(int)cfl_array_size(array); i++) {
-        val = cfl_array_fetch_by_index(array, i);
+    for (index=0; index<(ssize_t)cfl_array_size(array); index++) {
+        val = cfl_array_fetch_by_index(array, index);
         if (!TEST_CHECK(val != NULL)) {
-            TEST_MSG("%d: val is NULL",i);
+            TEST_MSG("%zd: val is NULL",index);
             cfl_array_destroy(array);
             return;
         }
         else if (!TEST_CHECK(val->type == CFL_VARIANT_INT)) {
-            TEST_MSG("%d: type is not int. type=%d",i, val->type);
+            TEST_MSG("%zd: type is not int. type=%d",index, val->type);
             cfl_array_destroy(array);
             return;
         }
-        else if (!TEST_CHECK(expect[i] == (int)val->data.as_int64)) {
-            TEST_MSG("%d: mismatch. got=%" PRId64 " expect=%d",i, val->data.as_int64, expect[i]);
+        else if (!TEST_CHECK(expect[index] == val->data.as_int64)) {
+            TEST_MSG("%zd: mismatch. got=%" PRId64 " expect=%" PRId64,index, val->data.as_int64, expect[index]);
             cfl_array_destroy(array);
             return;
         }
