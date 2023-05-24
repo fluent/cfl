@@ -20,6 +20,10 @@
 #include <cfl/cfl.h>
 #include "cfl_tests_internal.h"
 
+#ifdef _WIN32
+#define ssize_t SSIZE_T
+#endif
+
 static void test_create_destroy()
 {
     struct cfl_array *array = NULL;
