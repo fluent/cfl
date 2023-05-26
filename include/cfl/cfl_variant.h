@@ -53,6 +53,7 @@ struct cfl_variant {
 };
 int cfl_variant_print(FILE *fp, struct cfl_variant *val);
 struct cfl_variant *cfl_variant_create_from_string(char *value);
+struct cfl_variant *cfl_variant_create_from_string_s(char *value, size_t value_length);
 struct cfl_variant *cfl_variant_create_from_bytes(char *value, size_t length);
 struct cfl_variant *cfl_variant_create_from_bool(int value);
 struct cfl_variant *cfl_variant_create_from_int64(int64_t value);
