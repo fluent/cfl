@@ -37,6 +37,7 @@ struct cfl_kvlist {
 
 struct cfl_kvlist *cfl_kvlist_create();
 void cfl_kvlist_destroy(struct cfl_kvlist *list);
+void cfl_kvpair_destroy(struct cfl_kvpair *pair);
 
 int cfl_kvlist_insert_string(struct cfl_kvlist *list,
                              char *key, char *value);
@@ -72,6 +73,10 @@ int cfl_kvlist_insert_kvlist(struct cfl_kvlist *list,
 int cfl_kvlist_insert(struct cfl_kvlist *list,
                       char *key, struct cfl_variant *value);
 
+void cfl_kvlist_remove(struct cfl_kvlist *kvlist,
+                       char *name);
+
+int cfl_kvlist_contains(struct cfl_kvlist *kvlist, char *name);
 int cfl_kvlist_count(struct cfl_kvlist *list);
 struct cfl_variant *cfl_kvlist_fetch(struct cfl_kvlist *list, char *key);
 int cfl_kvlist_print(FILE *fp, struct cfl_kvlist *list);

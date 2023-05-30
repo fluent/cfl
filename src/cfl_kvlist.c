@@ -59,6 +59,61 @@ void cfl_kvlist_destroy(struct cfl_kvlist *list)
     free(list);
 }
 
+int cfl_kvlist_contains(struct cfl_kvlist *kvlist,
+                        char *name)
+{
+    struct cfl_list   *iterator;
+    struct cfl_kvpair *pair;
+
+    cfl_list_foreach(iterator, &kvlist->list) {
+        pair = cfl_list_entry(iterator,
+                              struct cfl_kvpair, _head);
+
+        if (strcasecmp(pair->key, name) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+void cfl_kvpair_destroy(struct cfl_kvpair *pair)
+{
+    if (pair != NULL) {
+        if (!cfl_list_entry_is_orphan(&pair->_head)) {
+            cfl_list_del(&pair->_head);
+        }
+
+        if (pair->key != NULL) {
+            cfl_sds_destroy(pair->key);
+        }
+
+        if (pair->val != NULL) {
+            cfl_variant_destroy(pair->val);
+        }
+
+        free(pair);
+    }
+}
+
+void cfl_kvlist_remove(struct cfl_kvlist *kvlist,
+                      char *name)
+{
+    struct cfl_list   *iterator_backup;
+    struct cfl_list   *iterator;
+    struct cfl_kvpair *pair;
+
+    cfl_list_foreach_safe(iterator, iterator_backup, &kvlist->list) {
+        pair = cfl_list_entry(iterator,
+                              struct cfl_kvpair, _head);
+
+        if (strcasecmp(pair->key, name) == 0) {
+            cfl_kvpair_destroy(pair);
+        }
+    }
+}
+
 /*
 int cfl_kvlist_insert(struct cfl_kvlist *list,
                       char *key, void *value,
