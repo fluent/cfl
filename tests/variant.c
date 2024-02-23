@@ -44,6 +44,7 @@ static int compare(FILE *fp, char *expect, int ignore_len)
             return -1;
         }
     }
+
     if (ignore_len) {
         if (!TEST_CHECK(strstr(&buf[0], expect) != NULL)) {
             TEST_MSG("compare error. got=%s expect=%s", &buf[0], expect);
@@ -103,6 +104,43 @@ static void test_variant_print_bool()
         cfl_variant_destroy(val);
         fclose(fp);
     }
+}
+
+static void test_variant_print_null()
+{
+    int ret;
+    char expects[] = "null";
+
+    FILE *fp = NULL;
+    struct cfl_variant *val = NULL;
+
+    fp = tmpfile();
+    if (!TEST_CHECK(fp != NULL)) {
+        TEST_MSG("fp is NULL");
+    }
+
+    val = cfl_variant_create_from_null();
+    if (!TEST_CHECK(val != NULL)) {
+        TEST_MSG("cfl_variant_create_from_null failed");
+        fclose(fp);
+    }
+
+    ret = cfl_variant_print(fp, val);
+
+    /* Check whether EOF or not. Not checking for positive
+     * number here. */
+    if (!TEST_CHECK(ret != EOF)) {
+        TEST_MSG("cfl_variant_print failed");
+        cfl_variant_destroy(val);
+        fclose(fp);
+    }
+
+    ret = compare(fp, expects, 0);
+    if (!TEST_CHECK(ret == 0)) {
+        TEST_MSG("compare failed");
+    }
+    cfl_variant_destroy(val);
+    fclose(fp);
 }
 
 static void test_variant_print_int64()
@@ -254,7 +292,7 @@ static void test_variant_print_kvlist()
     struct cfl_variant *val = NULL;
 
     if (!TEST_CHECK(sizeof(key_inputs)/sizeof(char*) == sizeof(val_inputs)/sizeof(int64_t))) {
-        TEST_MSG("key val array size mismatch. key_len=%d val_len=%d", 
+        TEST_MSG("key val array size mismatch. key_len=%d val_len=%d",
                  sizeof(key_inputs)/sizeof(char*),
                  sizeof(val_inputs)/sizeof(int64_t));
         exit(1);
@@ -497,6 +535,7 @@ static void test_variant_print_unknown()
 
 TEST_LIST = {
     {"variant_print_bool", test_variant_print_bool},
+    {"variant_print_null", test_variant_print_null},
     {"variant_print_int64", test_variant_print_int64},
     {"variant_print_uint64", test_variant_print_uint64},
     {"variant_print_double", test_variant_print_double},
