@@ -59,6 +59,9 @@ int cfl_variant_print(FILE *fp, struct cfl_variant *val)
     case CFL_VARIANT_DOUBLE:
         ret = fprintf(fp, "%lf", val->data.as_double);
         break;
+    case CFL_VARIANT_NULL:
+        ret = fprintf(fp, "null");
+        break;
     case CFL_VARIANT_BYTES:
         size = cfl_sds_len(val->data.as_bytes);
         for (i=0; i<size; i++) {
@@ -83,14 +86,14 @@ int cfl_variant_print(FILE *fp, struct cfl_variant *val)
     return ret;
 }
 
-struct cfl_variant *cfl_variant_create_from_string(char *value)
+struct cfl_variant *cfl_variant_create_from_string_n(char *value, int len)
 {
     struct cfl_variant *instance;
 
     instance = cfl_variant_create();
 
     if (instance != NULL) {
-        instance->data.as_string = cfl_sds_create(value);
+        instance->data.as_string = cfl_sds_create_len(value, len);
         if (instance->data.as_string == NULL) {
             free(instance);
             instance = NULL;
@@ -101,6 +104,14 @@ struct cfl_variant *cfl_variant_create_from_string(char *value)
     }
 
     return instance;
+}
+
+struct cfl_variant *cfl_variant_create_from_string(char *value)
+{
+    int len;
+
+    len = strlen(value);
+    return cfl_variant_create_from_string_n(value, len);
 }
 
 struct cfl_variant *cfl_variant_create_from_bytes(char *value, size_t length)
@@ -170,6 +181,18 @@ struct cfl_variant *cfl_variant_create_from_double(double value)
     if (instance != NULL) {
         instance->data.as_double = value;
         instance->type = CFL_VARIANT_DOUBLE;
+    }
+
+    return instance;
+}
+
+struct cfl_variant *cfl_variant_create_from_null()
+{
+    struct cfl_variant *instance;
+
+    instance = cfl_variant_create();
+    if (instance != NULL) {
+        instance->type = CFL_VARIANT_NULL;
     }
 
     return instance;
