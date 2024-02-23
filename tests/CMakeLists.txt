@@ -7,6 +7,7 @@ set(UNIT_TESTS_FILES
   list.c
   variant.c
   kvlist.c
+  object.c
   )
 
 configure_file(
