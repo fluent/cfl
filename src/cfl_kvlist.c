@@ -329,6 +329,10 @@ int cfl_kvlist_insert(struct cfl_kvlist *list,
 {
     struct cfl_kvpair *pair;
 
+    if (!key) {
+        return -1;
+    }
+
     pair = malloc(sizeof(struct cfl_kvpair));
     if (pair == NULL) {
         cfl_report_runtime_error();
@@ -336,7 +340,6 @@ int cfl_kvlist_insert(struct cfl_kvlist *list,
     }
 
     pair->key = cfl_sds_create(key);
-
     if (pair->key == NULL) {
         free(pair);
 
