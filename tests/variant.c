@@ -21,6 +21,7 @@
 #include <string.h>
 #include <cfl/cfl.h>
 #include <cfl/cfl_variant.h>
+#include <cfl/cfl_compat.h>
 
 #include "cfl_tests_internal.h"
 
