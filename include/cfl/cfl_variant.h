@@ -21,6 +21,7 @@
 #define CFL_VARIANT_H
 
 #include <stdio.h>
+#include <string.h>
 #include <inttypes.h>
 
 #define CFL_VARIANT_STRING     1

@@ -21,6 +21,7 @@
 #include <cfl/cfl_variant.h>
 #include <cfl/cfl_array.h>
 #include <cfl/cfl_kvlist.h>
+#include <cfl/cfl_compat.h>
 
 #if defined(__MINGW32__) || defined(__MINGW64__)
 #define HEXDUMPFORMAT "%#x"
