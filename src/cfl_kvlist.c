@@ -21,6 +21,7 @@
 #include <cfl/cfl_kvlist.h>
 #include <cfl/cfl_array.h>
 #include <cfl/cfl_variant.h>
+#include <cfl/cfl_compat.h>
 
 struct cfl_kvlist *cfl_kvlist_create()
 {
@@ -343,7 +344,6 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
     }
 
     pair->key = cfl_sds_create_len(key, key_size);
-
     if (pair->key == NULL) {
         free(pair);
 
