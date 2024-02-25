@@ -300,7 +300,7 @@ static void insert_reference()
         return;
     }
 
-    if (!TEST_CHECK(var->data.as_reference == &expect_type) == 0) {
+    if (!TEST_CHECK(var->data.as_reference == &expect_type)) {
         TEST_MSG("variant value error.got=%p expect=%p", var->data.as_reference, &expect_type);
         cfl_kvlist_destroy(list);
         return;
@@ -733,7 +733,7 @@ static void insert_reference_s()
         return;
     }
 
-    if (!TEST_CHECK(var->data.as_reference == &expect_type) == 0) {
+    if (!TEST_CHECK(var->data.as_reference == &expect_type)) {
         TEST_MSG("variant value error.got=%p expect=%p", var->data.as_reference, &expect_type);
         cfl_kvlist_destroy(list);
         return;
