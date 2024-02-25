@@ -380,7 +380,17 @@ struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_
 int cfl_kvlist_insert_string(struct cfl_kvlist *list,
                              char *key, char *value)
 {
-    return cfl_kvlist_insert_string_s(list, key, strlen(key), value, strlen(value));
+    int key_len;
+    int val_len;
+
+    if (!key || !value) {
+        return -1;
+    }
+
+    key_len = strlen(key);
+    val_len = strlen(value);
+
+    return cfl_kvlist_insert_string_s(list, key, key_len, value, val_len);
 }
 
 int cfl_kvlist_insert_bytes(struct cfl_kvlist *list,
