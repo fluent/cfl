@@ -87,14 +87,14 @@ int cfl_variant_print(FILE *fp, struct cfl_variant *val)
     return ret;
 }
 
-struct cfl_variant *cfl_variant_create_from_string_n(char *value, int len)
+struct cfl_variant *cfl_variant_create_from_string_s(char *value, size_t value_size)
 {
     struct cfl_variant *instance;
 
     instance = cfl_variant_create();
 
     if (instance != NULL) {
-        instance->data.as_string = cfl_sds_create_len(value, len);
+        instance->data.as_string = cfl_sds_create_len(value, value_size);
         if (instance->data.as_string == NULL) {
             free(instance);
             instance = NULL;
@@ -109,10 +109,7 @@ struct cfl_variant *cfl_variant_create_from_string_n(char *value, int len)
 
 struct cfl_variant *cfl_variant_create_from_string(char *value)
 {
-    int len;
-
-    len = strlen(value);
-    return cfl_variant_create_from_string_n(value, len);
+    return cfl_variant_create_from_string_s(value, strlen(value));
 }
 
 struct cfl_variant *cfl_variant_create_from_bytes(char *value, size_t length)

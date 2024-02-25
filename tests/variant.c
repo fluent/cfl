@@ -423,6 +423,55 @@ static void test_variant_print_string()
     }
 }
 
+struct str_and_len {
+    char *str;
+    size_t str_size;
+};
+
+static void test_variant_print_string_s()
+{
+    int ret;
+    int i;
+    struct str_and_len inputs[] = {
+        {.str = "hoge", .str_size = 4},
+        {.str = "aaa", .str_size = 3},
+    };
+
+    char *expects[] = {"\"hoge\"", "\"aaa\""};
+
+    FILE *fp = NULL;
+    struct cfl_variant *val = NULL;
+
+    for (i=0; i<sizeof(inputs)/sizeof(struct str_and_len); i++) {
+        fp = tmpfile();
+        if (!TEST_CHECK(fp != NULL)) {
+            TEST_MSG("%d: fp is NULL", i);
+            continue;
+        }
+
+        val = cfl_variant_create_from_string_s(inputs[i].str, inputs[i].str_size);
+        if (!TEST_CHECK(val != NULL)) {
+            TEST_MSG("%d: cfl_variant_create_from_string failed", i);
+            fclose(fp);
+            continue;
+        }
+
+        ret = cfl_variant_print(fp, val);
+        if (!TEST_CHECK(ret > 0)) {
+            TEST_MSG("%d:cfl_variant_print failed", i);
+            cfl_variant_destroy(val);
+            fclose(fp);
+            continue;
+        }
+        ret = compare(fp, expects[i], 0);
+        if (!TEST_CHECK(ret == 0)) {
+            TEST_MSG("%d:compare failed", i);
+        }
+        cfl_variant_destroy(val);
+        fclose(fp);
+    }
+}
+
 static void test_variant_print_bytes()
 {
     int ret;
@@ -541,6 +590,7 @@ TEST_LIST = {
     {"variant_print_uint64", test_variant_print_uint64},
     {"variant_print_double", test_variant_print_double},
     {"variant_print_string", test_variant_print_string},
+    {"variant_print_string_s", test_variant_print_string_s},
     {"variant_print_bytes", test_variant_print_bytes},
     {"variant_print_array", test_variant_print_array},
     {"variant_print_kvlist", test_variant_print_kvlist},
