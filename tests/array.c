@@ -105,15 +105,22 @@ static void append_string_s()
 static void append_string_s_ref()
 {
     int ret;
+    char *buf;
     struct cfl_array *arr;
 
     arr = cfl_array_create(1);
     TEST_CHECK(arr != NULL);
 
-    ret = cfl_array_append_string_s(arr, "test", 4, CFL_TRUE);
+    buf = malloc(5);
+    TEST_CHECK(buf != NULL);
+    memcpy(buf, "test", 4);
+    buf[4] = '\0';
+
+    ret = cfl_array_append_string_s(arr, buf, 4, CFL_TRUE);
     TEST_CHECK(ret == 0);
 
     cfl_array_destroy(arr);
+    free(buf);
 }
 
 static void append_bytes()
@@ -133,16 +140,25 @@ static void append_bytes()
 static void append_bytes_ref()
 {
     int ret;
+    char *buf;
     struct cfl_array *arr;
+
+    buf = malloc(5);
+    TEST_CHECK(buf != NULL);
+    memcpy(buf, "test", 4);
+    buf[4] = '\0';
 
     arr = cfl_array_create(1);
     TEST_CHECK(arr != NULL);
 
-    ret = cfl_array_append_bytes(arr, "test", 4, CFL_TRUE);
+    ret = cfl_array_append_bytes(arr, buf, 4, CFL_TRUE);
     TEST_CHECK(ret == 0);
 
     cfl_array_destroy(arr);
+
+    free(buf);
 }
+
 
 static void append_reference()
 {
