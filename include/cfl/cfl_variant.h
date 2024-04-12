@@ -83,4 +83,7 @@ struct cfl_variant *cfl_variant_create();
 
 void cfl_variant_destroy(struct cfl_variant *instance);
 
+void cfl_variant_size_set(struct cfl_variant *var, size_t size);
+size_t cfl_variant_size_get(struct cfl_variant *var);
+
 #endif
