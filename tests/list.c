@@ -45,8 +45,11 @@ static void checks()
 static void add()
 {
     int i;
+    int count = 0;
     struct cfl_list list;
     struct cfl_list *head;
+    struct cfl_list *tmp;
+
     struct node {
         int value;
         struct cfl_list _head;
@@ -74,7 +77,18 @@ static void add()
     cfl_list_foreach(head, &list) {
         node = cfl_list_entry(head, struct node, _head);
         printf("node value: %d\n", node->value);
+        count++;
 	}
+    TEST_CHECK(count == 3);
+
+    cfl_list_foreach_safe(head, tmp, &list) {
+        node = cfl_list_entry(head, struct node, _head);
+        cfl_list_del(&node->_head);
+        free(node);
+        count++;
+	}
+
+    free(nodes);
 }
 
 TEST_LIST = {
