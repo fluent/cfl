@@ -39,5 +39,6 @@
 #include <cfl/cfl_object.h>
 
 int cfl_init();
+char *cfl_version();
 
 #endif
