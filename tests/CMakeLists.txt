@@ -9,6 +9,7 @@ set(UNIT_TESTS_FILES
   list.c
   variant.c
   object.c
+  version.c
   )
 
 configure_file(
