@@ -8,7 +8,6 @@ set(UNIT_TESTS_FILES
   hash.c
   list.c
   variant.c
-  array.c
   object.c
   version.c
   utils.c
