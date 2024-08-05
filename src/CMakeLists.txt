@@ -5,9 +5,11 @@ set(src
   cfl_time.c
   cfl_kv.c
   cfl_kvlist.c
+  cfl_object.c
   cfl_array.c
   cfl_variant.c
   cfl_checksum.c
+  cfl_utils.c
   )
 
 # Static Library

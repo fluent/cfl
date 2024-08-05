@@ -17,15 +17,25 @@
  *  limitations under the License.
  */
 
-#include <cfl/cfl.h>
+#ifndef CFL_OBJECT_H
+#define CFL_OBJECT_H
 
-int cfl_init()
-{
-    return 0;
-}
+enum {
+    CFL_OBJECT_NONE = 0,
+    CFL_OBJECT_KVLIST = 1,
+    CFL_OBJECT_VARIANT,
+    CFL_OBJECT_ARRAY
+};
 
-char *cfl_version()
-{
-    return CFL_VERSION_STR;
-}
+struct cfl_object {
+    int type;
+    struct cfl_variant *variant;
+    struct cfl_list _head;
+};
 
+struct cfl_object *cfl_object_create();
+void cfl_object_destroy(struct cfl_object *obj);
+int cfl_object_set(struct cfl_object *o, int type, void *ptr);
+int cfl_object_print(FILE *stream, struct cfl_object *o);
+
+#endif
