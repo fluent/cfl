@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [windows-latest, windows-2019]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build on ${{ matrix.os }} with vs-2019
         run: |
           .\scripts\win_build.bat
@@ -33,7 +33,7 @@ jobs:
       matrix:
         os: [windows-latest, windows-2019]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Get dependencies w/ chocolatey
         uses: crazy-max/ghaction-chocolatey@v2
         with:
@@ -72,7 +72,7 @@ jobs:
           yum install -y cmake3
         shell: bash
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Run compilation
         run: |
@@ -90,7 +90,7 @@ jobs:
           apt-get install -y build-essential cmake make
         shell: bash
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Run compilation
         run: |
@@ -106,7 +106,7 @@ jobs:
         os: [ubuntu-latest]
         compiler: [ gcc, clang ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build on ${{ matrix.os }} with ${{ matrix.compiler }}
         uses: uraimo/run-on-arch-action@v2.5.0
         with:
@@ -135,7 +135,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         compiler: [ gcc, clang ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build on ${{ matrix.os }} with ${{ matrix.compiler }}
         run: |
           echo "CC = $CC, CXX = $CXX"
@@ -161,7 +161,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
