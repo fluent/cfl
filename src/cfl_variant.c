@@ -136,7 +136,7 @@ struct cfl_variant *cfl_variant_create_from_bytes(char *value, size_t length, in
         instance->data.as_bytes = cfl_sds_create_len(value, length);
         if (instance->data.as_bytes == NULL) {
             free(instance);
-            instance = NULL;
+            return NULL;
         }
     }
     cfl_variant_size_set(instance, length);
