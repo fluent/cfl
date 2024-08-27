@@ -1065,7 +1065,7 @@ static void test_basics()
     ret = cfl_kvlist_insert_string(list, "key1", "value1");
     TEST_CHECK(ret == 0);
 
-    ret = cfl_kvlist_insert_bytes(list, "key2", "value2", 6, CFL_TRUE);
+    ret = cfl_kvlist_insert_bytes(list, "key2", "value2", 6, CFL_FALSE);
     TEST_CHECK(ret == 0);
 
     ret = cfl_kvlist_insert_reference(list, "key3", (void *) 0xdeadbeef);

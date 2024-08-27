@@ -508,11 +508,10 @@ void cfl_kvpair_destroy(struct cfl_kvpair *pair)
             cfl_sds_destroy(pair->key);
         }
 
-        if (pair->val != NULL) {
+        if (pair->val != NULL && !pair->val->referenced) {
             cfl_variant_destroy(pair->val);
         }
 
         free(pair);
     }
 }
-
