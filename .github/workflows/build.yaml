@@ -111,14 +111,14 @@ jobs:
         uses: uraimo/run-on-arch-action@v2.8.1
         with:
           arch: aarch64
-          distro: ubuntu24.04
+          distro: ubuntu-latest
           run: |
             apt-get update && \
             apt-get install -y --no-install-recommends \
             build-essential \
             cmake \
             file \
-            make 
+            make
             export CC=${{ env.compiler }}
             cmake -DCFL_TESTS=On .
             make all
