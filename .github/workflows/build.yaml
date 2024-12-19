@@ -111,7 +111,7 @@ jobs:
         uses: uraimo/run-on-arch-action@v2.8.1
         with:
           arch: aarch64
-          distro: ubuntu-latest
+          distro: ubuntu_latest
           run: |
             apt-get update && \
             apt-get install -y --no-install-recommends \
