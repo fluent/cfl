@@ -67,7 +67,7 @@ jobs:
           sed -i -e "s/^mirrorlist=http:\/\/mirrorlist.centos.org/#mirrorlist=http:\/\/mirrorlist.centos.org/g" /etc/yum.repos.d/CentOS-Base.repo
           sed -i -e "s/^#baseurl=http:\/\/mirror.centos.org/baseurl=http:\/\/vault.centos.org/g" /etc/yum.repos.d/CentOS-Base.repo
           yum -y update
-          yum install -y ca-certificates cmake gcc gcc-c++ make wget
+          yum install -y ca-certificates cmake gcc gcc-c++ git make wget
           yum install -y epel-release
           yum install -y cmake3
         shell: bash
