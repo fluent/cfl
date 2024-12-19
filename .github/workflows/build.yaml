@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Get dependencies w/ chocolatey
-        uses: crazy-max/ghaction-chocolatey@v2
+        uses: crazy-max/ghaction-chocolatey@v3
         with:
           args: install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
       - uses: msys2/setup-msys2@v2
