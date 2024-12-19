@@ -89,7 +89,7 @@ jobs:
         run: |
           cmake3 -DCFL_DEV=on .
           make
-        working-directory: cfl/build
+        working-directory: cfl
 
   build-debian:
     name: Debian Buster build to confirm no issues once used downstream
