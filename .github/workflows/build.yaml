@@ -72,12 +72,24 @@ jobs:
           yum install -y cmake3
         shell: bash
 
-      - uses: actions/checkout@v4
+      - name: Clone repo without submodules (1.8.3 version of Git)
+        run: |
+          git clone https://github.com/fluent/cfl.git
+        shell: bash
+
+      - name: Check out the branch (1.8.3 version of Git)
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          git checkout "$BRANCH_NAME"
+        shell: bash
+        working-directory: cfl
 
       - name: Run compilation
         run: |
           cmake3 -DCFL_DEV=on .
           make
+        working-directory: cfl/build
 
   build-debian:
     name: Debian Buster build to confirm no issues once used downstream
