@@ -183,3 +183,31 @@ jobs:
           # dependencies_debian: ''
           cmakeflags: '-DCFL_TESTS=On -DCFL_DEV=on .'
           build_command: make all
+
+
+  # this job provides the single required status for PRs to be merged into main.
+  # instead of updating the protected branch status in github, developers can update the needs section below
+  # to require additional status checks to protect main.
+  # the job uses the alls-green action to get around the github issue that treats a "skipped" required status check
+  # as passed. github will skip a job if an upstream needed job fails, which would defeat the purpose of this required
+  # status check.
+  test-required-checks-complete:
+    # note: this step always has to run in order to check if the dependent jobs passed. by default github skips running a job
+    # if the needed jobs upstream failed.
+    if: always()
+    needs:
+      - build-windows
+      - build-msys2
+      - build-centos
+      - build-debian
+      - build-unix-arm64
+      - build-unix-amd64
+      - build-analysis-tests
+    name: Required checks complete
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        jobs: ${{ toJSON(needs) }}
