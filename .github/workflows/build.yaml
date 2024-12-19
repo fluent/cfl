@@ -67,17 +67,29 @@ jobs:
           sed -i -e "s/^mirrorlist=http:\/\/mirrorlist.centos.org/#mirrorlist=http:\/\/mirrorlist.centos.org/g" /etc/yum.repos.d/CentOS-Base.repo
           sed -i -e "s/^#baseurl=http:\/\/mirror.centos.org/baseurl=http:\/\/vault.centos.org/g" /etc/yum.repos.d/CentOS-Base.repo
           yum -y update
-          yum install -y ca-certificates cmake gcc gcc-c++ make wget
+          yum install -y ca-certificates cmake gcc gcc-c++ git make wget
           yum install -y epel-release
           yum install -y cmake3
         shell: bash
 
-      - uses: actions/checkout@v4
+      - name: Clone repo without submodules (1.8.3 version of Git)
+        run: |
+          git clone https://github.com/fluent/cfl.git
+        shell: bash
+
+      - name: Check out the branch (1.8.3 version of Git)
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          git checkout "$BRANCH_NAME"
+        shell: bash
+        working-directory: cfl
 
       - name: Run compilation
         run: |
           cmake3 -DCFL_DEV=on .
           make
+        working-directory: cfl
 
   build-debian:
     name: Debian Buster build to confirm no issues once used downstream
@@ -108,17 +120,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build on ${{ matrix.os }} with ${{ matrix.compiler }}
-        uses: uraimo/run-on-arch-action@v2.5.0
+        uses: uraimo/run-on-arch-action@v2.8.1
         with:
           arch: aarch64
-          distro: ubuntu20.04
+          distro: ubuntu_latest
           run: |
             apt-get update && \
             apt-get install -y --no-install-recommends \
             build-essential \
             cmake \
             file \
-            make 
+            make
             export CC=${{ env.compiler }}
             cmake -DCFL_TESTS=On .
             make all
