@@ -69,7 +69,6 @@ jobs:
           yum -y update
           yum install -y ca-certificates gcc gcc-c++ git make wget
           yum install -y epel-release
-          yum install -y cmake3
         shell: bash
 
       - name: Install CMake 3.20.0 or higher
@@ -79,7 +78,7 @@ jobs:
           chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
           ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
           ln -sf /usr/local/bin/cmake /usr/bin/cmake
-          cmake --version  # Confirm installation
+          cmake --version
 
       - name: Clone repo without submodules (1.8.3 version of Git)
         run: |
@@ -96,7 +95,7 @@ jobs:
 
       - name: Run compilation
         run: |
-          cmake3 -DCFL_DEV=on .
+          cmake -DCFL_DEV=on .
           make
         working-directory: cfl
 
