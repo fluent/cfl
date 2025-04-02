@@ -124,6 +124,7 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
                         struct cfl_variant *value);
 
 struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_t key_size);
+struct cfl_variant *cfl_kvlist_fetch_case_s(struct cfl_kvlist *list, char *key, size_t key_size);
 
 int cfl_kvlist_contains(struct cfl_kvlist *kvlist, char *name);
 int cfl_kvlist_remove(struct cfl_kvlist *kvlist, char *name);
