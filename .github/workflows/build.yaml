@@ -107,14 +107,27 @@ jobs:
       - name: Set up base image dependencies
         run: |
           apt-get update
-          apt-get install -y build-essential cmake make
-        shell: bash
+          apt-get install -y build-essential wget make gcc g++
+
+      - name: Install CMake 3.20.0 or higher
+        run: |
+          CMAKE_VERSION=3.20.0  # Change this if you need a higher version
+          wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
+
+          # Ensure the new CMake is found first
+          echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc
+          source ~/.bashrc
+
+          # Confirm CMake installation
+          /usr/local/bin/cmake --version
 
       - uses: actions/checkout@v4
 
       - name: Run compilation
         run: |
-          cmake -DCFL_DEV=on .
+          /usr/local/bin/cmake -DCFL_DEV=on .
           make
 
   build-unix-arm64:
