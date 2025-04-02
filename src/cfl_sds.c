@@ -234,3 +234,32 @@ cfl_sds_t cfl_sds_printf(cfl_sds_t *sds, const char *fmt, ...)
     return s;
 }
 
+
+/*
+ * cfl_sds_snprintf is a wrapper of snprintf.
+ * The difference is that this function can increase the buffer of cfl_sds_t.
+ */
+int cfl_sds_snprintf(cfl_sds_t *str, size_t size, const char *fmt, ...)
+{
+    va_list va;
+    cfl_sds_t tmp;
+    int ret;
+
+ retry_snprintf:
+    va_start(va, fmt);
+    ret = vsnprintf(*str, size, fmt, va);
+    if (ret > size) {
+        tmp = cfl_sds_increase(*str, ret-size);
+        if (tmp == NULL) {
+            return -1;
+        }
+        *str = tmp;
+        size = ret;
+        va_end(va);
+        goto retry_snprintf;
+    }
+    va_end(va);
+
+    cfl_sds_len_set(*str, ret);
+    return ret;
+}
