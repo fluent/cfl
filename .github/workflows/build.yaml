@@ -204,22 +204,25 @@ jobs:
           wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
           chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
 
-          # Install CMake to a user-writable directory
-          ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=$HOME/cmake
+          # Create the target directory
+          mkdir -p /home/runner/cmake
+
+          # Install CMake to the user-writable directory
+          ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/home/runner/cmake
 
           # Add CMake to the PATH
-          echo 'export PATH=$HOME/cmake/bin:$PATH' >> ~/.bashrc
+          echo 'export PATH=/home/runner/cmake/bin:$PATH' >> ~/.bashrc
           source ~/.bashrc
 
           # Verify installation
-          $HOME/cmake/bin/cmake --version
+          /home/runner/cmake/bin/cmake --version
 
       - uses: docker://lpenz/ghaction-cmake:0.19
         with:
           preset: ${{ matrix.preset }}
           dependencies_debian: 'wget'
           cmakeflags: '-DCFL_TESTS=On -DCFL_DEV=on .'
-          build_command: $HOME/cmake/bin/cmake && make all
+          build_command: /home/runner/cmake/bin/cmake && make all
 
   # this job provides the single required status for PRs to be merged into main.
   # instead of updating the protected branch status in github, developers can update the needs section below
