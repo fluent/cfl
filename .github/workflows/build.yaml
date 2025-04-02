@@ -198,22 +198,28 @@ jobs:
         with:
           submodules: true
 
-      - name: Install CMake 3.20.0 or higher inside the Docker container
+      - name: Install CMake 3.20.0 or higher in user directory
         run: |
-          CMAKE_VERSION=3.20.0  # Set the version you need
+          CMAKE_VERSION=3.20.0  # Change this to the version you need
           wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
           chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
-          ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
-          echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc
+
+          # Install CMake to a user-writable directory
+          ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=$HOME/cmake
+
+          # Add CMake to the PATH
+          echo 'export PATH=$HOME/cmake/bin:$PATH' >> ~/.bashrc
           source ~/.bashrc
-          /usr/local/bin/cmake --version  # Confirm the installation
+
+          # Verify installation
+          $HOME/cmake/bin/cmake --version
 
       - uses: docker://lpenz/ghaction-cmake:0.19
         with:
           preset: ${{ matrix.preset }}
           dependencies_debian: 'wget'
           cmakeflags: '-DCFL_TESTS=On -DCFL_DEV=on .'
-          build_command: /usr/local/bin/cmake && make all
+          build_command: $HOME/cmake/bin/cmake && make all
 
   # this job provides the single required status for PRs to be merged into main.
   # instead of updating the protected branch status in github, developers can update the needs section below
