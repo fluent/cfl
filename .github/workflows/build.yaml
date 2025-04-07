@@ -69,17 +69,16 @@ jobs:
           yum -y update
           yum install -y ca-certificates gcc gcc-c++ git make wget
           yum install -y epel-release
-          yum install -y cmake3
         shell: bash
 
-      - name: Install CMake 3.20.0 or higher
+      - name: Install CMake 3.20.0
         run: |
           CMAKE_VERSION=3.20.0
           wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
           chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
           ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
           ln -sf /usr/local/bin/cmake /usr/bin/cmake
-          cmake --version  # Confirm installation
+          cmake --version
 
       - name: Clone repo without submodules (1.8.3 version of Git)
         run: |
@@ -96,7 +95,7 @@ jobs:
 
       - name: Run compilation
         run: |
-          cmake3 -DCFL_DEV=on .
+          cmake -DCFL_DEV=on .
           make
         working-directory: cfl
 
@@ -108,14 +107,26 @@ jobs:
       - name: Set up base image dependencies
         run: |
           apt-get update
-          apt-get install -y build-essential cmake make
-        shell: bash
+          apt-get install -y build-essential wget make gcc g++
+
+      - name: Install CMake 3.20.0
+        run: |
+          CMAKE_VERSION=3.20.0
+          wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
+
+          # Ensure the new CMake is found first
+          export PATH="/usr/local/bin:$PATH"
+
+          # Confirm CMake installation
+          /usr/local/bin/cmake --version
 
       - uses: actions/checkout@v4
 
       - name: Run compilation
         run: |
-          cmake -DCFL_DEV=on .
+          /usr/local/bin/cmake -DCFL_DEV=on .
           make
 
   build-unix-arm64:
@@ -185,14 +196,33 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+          dependencies_debian: 'wget'
 
-      - uses: docker://lpenz/ghaction-cmake:0.19
+      - name: Install CMake 3.20.0
+        run: |
+          CMAKE_VERSION=3.20.0
+          wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
+
+          # Create a writable temporary directory
+          mkdir -p /tmp/cmake
+
+          # Install CMake to /tmp/cmake
+          ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/tmp/cmake
+
+          # Add CMake to the PATH
+          echo 'export PATH=/tmp/cmake/bin:$PATH' >> ~/.bashrc
+          source ~/.bashrc
+
+          # Verify installation
+          /tmp/cmake/bin/cmake --version
+
+      - uses: actions/checkout@v4
         with:
           preset: ${{ matrix.preset }}
-          # dependencies_debian: ''
-          cmakeflags: '-DCFL_TESTS=On -DCFL_DEV=on .'
-          build_command: make all
 
+          cmakeflags: '-DCFL_TESTS=On -DCFL_DEV=on .'
+          build_command: /tmp/cmake/bin/cmake && make all
 
   # this job provides the single required status for PRs to be merged into main.
   # instead of updating the protected branch status in github, developers can update the needs section below
