@@ -317,7 +317,7 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
     return 0;
 }
 
-struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_t key_size)
+struct cfl_variant *cfl_kvlist_fetch_internal_s(struct cfl_kvlist *list, char *key, size_t key_size, int case_sensitive)
 {
     struct cfl_list *head;
     struct cfl_kvpair *pair;
@@ -329,14 +329,28 @@ struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_
             continue;
         }
 
-        if (strncasecmp(pair->key, key, key_size) == 0) {
-            return pair->val;
+        if (case_sensitive == CFL_TRUE ) {
+            if (strncmp(pair->key, key, key_size) == 0) {
+                return pair->val;
+            }
+        } else {
+            if (strncasecmp(pair->key, key, key_size) == 0) {
+                return pair->val;
+            }
         }
     }
 
     return NULL;
 }
 
+struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_t key_size) {
+    return cfl_kvlist_fetch_internal_s(list, key, key_size, CFL_FALSE);
+}
+
+struct cfl_variant *cfl_kvlist_fetch_case_s(struct cfl_kvlist *list, char *key, size_t key_size)
+{
+    return cfl_kvlist_fetch_internal_s(list, key, key_size, CFL_TRUE);
+}
 
 int cfl_kvlist_insert_string(struct cfl_kvlist *list,
                              char *key, char *value)
