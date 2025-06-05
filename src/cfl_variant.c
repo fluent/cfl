@@ -64,7 +64,7 @@ int cfl_variant_print(FILE *fp, struct cfl_variant *val)
         ret = fprintf(fp, "null");
         break;
     case CFL_VARIANT_BYTES:
-        size = cfl_sds_len(val->data.as_bytes);
+        size = val->size;
         for (i=0; i<size; i++) {
             ret = fprintf(fp, "%02x", (unsigned char)val->data.as_bytes[i]);
         }
