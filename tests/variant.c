@@ -509,6 +509,43 @@ static void test_variant_print_bytes()
     fclose(fp);
 }
 
+static void test_variant_print_bytes_referenced()
+{
+    int ret;
+    char input[] = {0x1f, 0xaa, 0x0a, 0xff};
+    char *expect = "1faa0aff";
+
+    FILE *fp = NULL;
+    struct cfl_variant *val = NULL;
+
+    fp = tmpfile();
+    if (!TEST_CHECK(fp != NULL)) {
+        TEST_MSG("fp is NULL");
+        exit(1);
+    }
+
+    val = cfl_variant_create_from_bytes(input, 4, CFL_TRUE);
+    if (!TEST_CHECK(val != NULL)) {
+        TEST_MSG("cfl_variant_create_from_bytes failed");
+        fclose(fp);
+        exit(1);
+    }
+
+    ret = cfl_variant_print(fp, val);
+    if (!TEST_CHECK(ret > 0)) {
+        TEST_MSG("cfl_variant_print failed");
+        cfl_variant_destroy(val);
+        fclose(fp);
+        exit(1);
+    }
+    ret = compare(fp, expect, 0);
+    if (!TEST_CHECK(ret == 0)) {
+        TEST_MSG("compare failed");
+    }
+    cfl_variant_destroy(val);
+    fclose(fp);
+}
+
 
 static void test_variant_print_reference()
 {
@@ -592,6 +629,7 @@ TEST_LIST = {
     {"variant_print_string", test_variant_print_string},
     {"variant_print_string_s", test_variant_print_string_s},
     {"variant_print_bytes", test_variant_print_bytes},
+    {"variant_print_bytes_referenced", test_variant_print_bytes_referenced},
     {"variant_print_array", test_variant_print_array},
     {"variant_print_kvlist", test_variant_print_kvlist},
     {"variant_print_reference", test_variant_print_reference},
