@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [windows-latest, windows-2019]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build on ${{ matrix.os }} with vs-2019
         run: |
           .\scripts\win_build.bat
@@ -33,7 +33,7 @@ jobs:
       matrix:
         os: [windows-latest, windows-2019]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Get dependencies w/ chocolatey
         uses: crazy-max/ghaction-chocolatey@v3
         with:
@@ -122,7 +122,7 @@ jobs:
           # Confirm CMake installation
           /usr/local/bin/cmake --version
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Run compilation
         run: |
@@ -138,7 +138,7 @@ jobs:
         os: [ubuntu-latest]
         compiler: [ gcc, clang ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build on ${{ matrix.os }} with ${{ matrix.compiler }}
         uses: uraimo/run-on-arch-action@v3.0.1
         with:
@@ -167,7 +167,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         compiler: [ gcc, clang ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build on ${{ matrix.os }} with ${{ matrix.compiler }}
         run: |
           echo "CC = $CC, CXX = $CXX"
@@ -193,7 +193,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
           dependencies_debian: 'wget'
@@ -217,7 +217,7 @@ jobs:
           # Verify installation
           /tmp/cmake/bin/cmake --version
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           preset: ${{ matrix.preset }}
 
