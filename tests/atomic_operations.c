@@ -33,6 +33,13 @@
 
 static uint64_t global_counter;
 
+static void test_atomic_initialize()
+{
+    TEST_CHECK(cfl_atomic_initialize() == 0);
+    TEST_CHECK(cfl_atomic_initialize() == 0);
+    TEST_CHECK(cfl_init() == 0);
+}
+
 static void test_atomic_basic_operations()
 {
     TEST_CHECK(cfl_init() == 0);
@@ -45,6 +52,29 @@ static void test_atomic_basic_operations()
 
     TEST_CHECK(cfl_atomic_compare_exchange(&global_counter, 10, 20) == 1);
     TEST_CHECK(cfl_atomic_load(&global_counter) == 20);
+}
+
+static void test_atomic_full_width_values()
+{
+    uint64_t value;
+    uint64_t high_bit;
+
+    high_bit = UINT64_C(1) << 63;
+
+    TEST_CHECK(cfl_atomic_initialize() == 0);
+
+    value = 0;
+    cfl_atomic_store(&value, UINT64_MAX);
+    TEST_CHECK(cfl_atomic_load(&value) == UINT64_MAX);
+
+    TEST_CHECK(cfl_atomic_compare_exchange(&value, high_bit, 1) == 0);
+    TEST_CHECK(cfl_atomic_load(&value) == UINT64_MAX);
+
+    TEST_CHECK(cfl_atomic_compare_exchange(&value, UINT64_MAX, high_bit) == 1);
+    TEST_CHECK(cfl_atomic_load(&value) == high_bit);
+
+    TEST_CHECK(cfl_atomic_compare_exchange(&value, high_bit, 0) == 1);
+    TEST_CHECK(cfl_atomic_load(&value) == 0);
 }
 
 static void add_through_compare_exchange(uint64_t val)
@@ -139,7 +169,9 @@ static void test_atomic_operations()
 #endif
 
 TEST_LIST = {
+    { "atomic_initialize", test_atomic_initialize },
     { "atomic_basic_operations", test_atomic_basic_operations },
+    { "atomic_full_width_values", test_atomic_full_width_values },
     { "atomic_operations", test_atomic_operations },
     { 0 }
 };
