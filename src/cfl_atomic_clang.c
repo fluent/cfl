@@ -17,30 +17,26 @@
  *  limitations under the License.
  */
 
-#ifndef CFL_H
-#define CFL_H
-
-#define CFL_FALSE   0
-#define CFL_TRUE    !CFL_FALSE
-
-/* headers that are needed in general */
-#include <cfl/cfl_info.h>
-#include <cfl/cfl_version.h>
-#include <cfl/cfl_compat.h>
 #include <cfl/cfl_atomic.h>
-#include <cfl/cfl_log.h>
-#include <cfl/cfl_sds.h>
-#include <cfl/cfl_list.h>
-#include <cfl/cfl_hash.h>
-#include <cfl/cfl_array.h>
-#include <cfl/cfl_kv.h>
-#include <cfl/cfl_kvlist.h>
-#include <cfl/cfl_time.h>
-#include <cfl/cfl_variant.h>
-#include <cfl/cfl_object.h>
-#include <cfl/cfl_utils.h>
 
-int cfl_init();
-char *cfl_version();
+int cfl_atomic_initialize()
+{
+    return 0;
+}
 
-#endif
+int cfl_atomic_compare_exchange(uint64_t *storage,
+                                uint64_t old_value, uint64_t new_value)
+{
+    return __atomic_compare_exchange(storage, &old_value, &new_value, 0,
+                                     __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+}
+
+void cfl_atomic_store(uint64_t *storage, uint64_t new_value)
+{
+    __atomic_store_n(storage, new_value, __ATOMIC_SEQ_CST);
+}
+
+uint64_t cfl_atomic_load(uint64_t *storage)
+{
+    return __atomic_load_n(storage, __ATOMIC_SEQ_CST);
+}
