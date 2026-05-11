@@ -1378,6 +1378,28 @@ static void reject_variant_cycles()
     cfl_variant_destroy(variant);
 }
 
+static void reject_duplicate_variant()
+{
+    int ret;
+    struct cfl_kvlist *list;
+    struct cfl_variant *variant;
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    variant = cfl_variant_create_from_string("value");
+    TEST_CHECK(variant != NULL);
+
+    ret = cfl_kvlist_insert(list, "one", variant);
+    TEST_CHECK(ret == 0);
+
+    ret = cfl_kvlist_insert(list, "two", variant);
+    TEST_CHECK(ret == -1);
+    TEST_CHECK(cfl_kvlist_count(list) == 1);
+
+    cfl_kvlist_destroy(list);
+}
+
 static void reject_array_cycles()
 {
     int ret;
@@ -1432,6 +1454,7 @@ TEST_LIST = {
     {"print_write_error", print_write_error},
     {"reject_kvlist_cycles", reject_kvlist_cycles},
     {"reject_variant_cycles", reject_variant_cycles},
+    {"reject_duplicate_variant", reject_duplicate_variant},
     {"reject_array_cycles", reject_array_cycles},
     { 0 }
 };
