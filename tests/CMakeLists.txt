@@ -1,6 +1,7 @@
 include_directories(lib/acutest)
 
 set(UNIT_TESTS_FILES
+  atomic_operations.c
   kv.c
   kvlist.c
   array.c
@@ -12,6 +13,10 @@ set(UNIT_TESTS_FILES
   version.c
   utils.c
   )
+
+if(NOT CFL_SYSTEM_WINDOWS)
+  find_package(Threads REQUIRED)
+endif()
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cfl_tests_internal.h.in"
@@ -27,6 +32,10 @@ foreach(source_file ${UNIT_TESTS_FILES})
     ${source_file}
     )
   target_link_libraries(${source_file_we} cfl-static)
+
+  if(source_file STREQUAL "atomic_operations.c" AND NOT CFL_SYSTEM_WINDOWS)
+    target_link_libraries(${source_file_we} Threads::Threads)
+  endif()
 
   if (CFL_SANITIZE_ADDRESS)
     add_sanitizers(${source_file_we})
