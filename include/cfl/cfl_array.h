@@ -21,7 +21,12 @@
 #define CFL_ARRAY_H
 
 #include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include <cfl/cfl_variant.h>
+
+struct cfl_kvlist;
 
 struct cfl_array {
     int                  resizable;
@@ -36,6 +41,10 @@ void cfl_array_destroy(struct cfl_array *array);
 static inline struct cfl_variant *cfl_array_fetch_by_index(struct cfl_array *array,
                                                            size_t position)
 {
+    if (array == NULL) {
+        return NULL;
+    }
+
     if (position >= array->entry_count) {
         return NULL;
     }
@@ -45,6 +54,10 @@ static inline struct cfl_variant *cfl_array_fetch_by_index(struct cfl_array *arr
 
 static inline size_t cfl_array_size(struct cfl_array *array)
 {
+    if (array == NULL) {
+        return 0;
+    }
+
     return array->entry_count;
 }
 

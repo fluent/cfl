@@ -21,6 +21,9 @@
 #define CFL_KVLIST_H
 
 #include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include <cfl/cfl_sds.h>
 #include <cfl/cfl_list.h>
 #include <cfl/cfl_variant.h>
