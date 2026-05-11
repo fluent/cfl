@@ -280,13 +280,19 @@ static struct cfl_list *split(const char *line, int separator, int max_split, in
          * and last entry.
          */
         if (count >= max_split && max_split > 0 && i < len) {
-          new = calloc(1, sizeof(struct cfl_split_entry));
+            new = calloc(1, sizeof(struct cfl_split_entry));
             if (!new) {
                 cfl_errno();
                 cfl_utils_split_free(list);
                 return NULL;
             }
             new->value = cfl_string_copy_substr(line, i, len);
+            if (new->value == NULL) {
+                cfl_errno();
+                free(new);
+                cfl_utils_split_free(list);
+                return NULL;
+            }
             new->len   = len - i;
             cfl_list_add(&new->_head, list);
             break;

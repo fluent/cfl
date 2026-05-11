@@ -89,9 +89,45 @@ static void test_sds_invalid_inputs()
     cfl_sds_destroy(s);
 }
 
+static void test_sds_self_append()
+{
+    cfl_sds_t s;
+    cfl_sds_t tmp;
+
+    s = cfl_sds_create("abcdef");
+    TEST_CHECK(s != NULL);
+
+    tmp = cfl_sds_cat(s, s, cfl_sds_len(s));
+    TEST_CHECK(tmp != NULL);
+    s = tmp;
+
+    TEST_CHECK(cfl_sds_len(s) == 12);
+    TEST_CHECK(strcmp("abcdefabcdef", s) == 0);
+
+    cfl_sds_destroy(s);
+}
+
+static void test_sds_rejects_oversized_in_buffer_slice()
+{
+    cfl_sds_t s;
+    cfl_sds_t tmp;
+
+    s = cfl_sds_create("abcdef");
+    TEST_CHECK(s != NULL);
+
+    tmp = cfl_sds_cat(s, s + 4, 4);
+    TEST_CHECK(tmp == NULL);
+    TEST_CHECK(cfl_sds_len(s) == 6);
+    TEST_CHECK(strcmp("abcdef", s) == 0);
+
+    cfl_sds_destroy(s);
+}
+
 TEST_LIST = {
     { "sds_usage" , test_sds_usage},
     { "sds_printf", test_sds_printf},
     { "sds_invalid_inputs", test_sds_invalid_inputs},
+    { "sds_self_append", test_sds_self_append},
+    { "sds_rejects_oversized_in_buffer_slice", test_sds_rejects_oversized_in_buffer_slice},
     { 0 }
 };

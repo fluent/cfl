@@ -1266,6 +1266,139 @@ static void print_escaped_keys()
     cfl_kvlist_destroy(list);
 }
 
+static void embedded_nul_keys_do_not_match_short_name()
+{
+    int ret;
+    char key[] = {'a', 'd', 'm', 'i', 'n', '\0', 'x'};
+    struct cfl_kvlist *list;
+    struct cfl_variant *variant;
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    ret = cfl_kvlist_insert_string(list, "admin", "plain");
+    TEST_CHECK(ret == 0);
+
+    ret = cfl_kvlist_insert_string_s(list, key, sizeof(key),
+                                     "hidden", 6, CFL_FALSE);
+    TEST_CHECK(ret == 0);
+
+    ret = cfl_kvlist_contains(list, "admin");
+    TEST_CHECK(ret == CFL_TRUE);
+
+    ret = cfl_kvlist_remove(list, "admin");
+    TEST_CHECK(ret == CFL_TRUE);
+
+    ret = cfl_kvlist_count(list);
+    TEST_CHECK(ret == 1);
+
+    variant = cfl_kvlist_fetch_s(list, key, sizeof(key));
+    TEST_CHECK(variant != NULL);
+
+    ret = cfl_kvlist_contains(list, "admin");
+    TEST_CHECK(ret == CFL_FALSE);
+
+    ret = cfl_kvlist_remove(list, "admin");
+    TEST_CHECK(ret == CFL_FALSE);
+
+    ret = cfl_kvlist_count(list);
+    TEST_CHECK(ret == 1);
+
+    cfl_kvlist_destroy(list);
+}
+
+static void print_write_error()
+{
+#ifdef __linux__
+    int ret;
+    FILE *fp;
+    struct cfl_kvlist *list;
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    fp = fopen("/dev/full", "w");
+    if (fp == NULL) {
+        cfl_kvlist_destroy(list);
+        return;
+    }
+
+    setvbuf(fp, NULL, _IONBF, 0);
+
+    ret = cfl_kvlist_print(fp, list);
+    TEST_CHECK(ret == -1);
+
+    fclose(fp);
+    cfl_kvlist_destroy(list);
+#endif
+}
+
+static void reject_kvlist_cycles()
+{
+    int ret;
+    struct cfl_kvlist *list;
+    struct cfl_kvlist *child;
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    ret = cfl_kvlist_insert_kvlist(list, "self", list);
+    TEST_CHECK(ret == -1);
+
+    child = cfl_kvlist_create();
+    TEST_CHECK(child != NULL);
+
+    ret = cfl_kvlist_insert_kvlist(list, "child", child);
+    TEST_CHECK(ret == 0);
+
+    ret = cfl_kvlist_insert_kvlist(list, "child-again", child);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_kvlist_insert_kvlist(child, "parent", list);
+    TEST_CHECK(ret == -1);
+
+    cfl_kvlist_destroy(list);
+}
+
+static void reject_variant_cycles()
+{
+    int ret;
+    struct cfl_kvlist *list;
+    struct cfl_variant *variant;
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    variant = cfl_variant_create_from_kvlist(list);
+    TEST_CHECK(variant != NULL);
+
+    ret = cfl_kvlist_insert(list, "self", variant);
+    TEST_CHECK(ret == -1);
+
+    cfl_variant_destroy(variant);
+}
+
+static void reject_array_cycles()
+{
+    int ret;
+    struct cfl_array *array;
+    struct cfl_kvlist *list;
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    array = cfl_array_create(1);
+    TEST_CHECK(array != NULL);
+
+    ret = cfl_kvlist_insert_array(list, "array", array);
+    TEST_CHECK(ret == 0);
+
+    ret = cfl_array_append_kvlist(array, list);
+    TEST_CHECK(ret == -1);
+
+    cfl_kvlist_destroy(list);
+}
+
 TEST_LIST = {
     {"create_destroy",  create_destroy},
     {"count", count},
@@ -1295,5 +1428,10 @@ TEST_LIST = {
     {"basics", test_basics},
     {"null_inputs", null_inputs},
     {"print_escaped_keys", print_escaped_keys},
+    {"embedded_nul_keys_do_not_match_short_name", embedded_nul_keys_do_not_match_short_name},
+    {"print_write_error", print_write_error},
+    {"reject_kvlist_cycles", reject_kvlist_cycles},
+    {"reject_variant_cycles", reject_variant_cycles},
+    {"reject_array_cycles", reject_array_cycles},
     { 0 }
 };

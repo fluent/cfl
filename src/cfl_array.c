@@ -23,6 +23,8 @@
 
 #include <stdint.h>
 
+#include <cfl/cfl_container.h>
+
 struct cfl_array *cfl_array_create(size_t slot_count)
 {
     struct cfl_array *array;
@@ -147,6 +149,24 @@ int cfl_array_append(struct cfl_array *array,
     size_t base_slot_count;
 
     if (array == NULL || value == NULL) {
+        return -1;
+    }
+
+    if (cfl_container_array_contains_variant(array, value)) {
+        return -1;
+    }
+
+    if (cfl_container_variant_contains_array(value, array)) {
+        return -1;
+    }
+
+    if (value->type == CFL_VARIANT_ARRAY &&
+        cfl_container_array_contains_array(array, value->data.as_array)) {
+        return -1;
+    }
+
+    if (value->type == CFL_VARIANT_KVLIST &&
+        cfl_container_array_contains_kvlist(array, value->data.as_kvlist)) {
         return -1;
     }
 
@@ -397,6 +417,11 @@ int cfl_array_append_array(struct cfl_array *array, struct cfl_array *value)
         return -1;
     }
 
+    if (cfl_container_array_contains_array(array, value) ||
+        cfl_container_array_contains_array(value, array)) {
+        return -1;
+    }
+
     value_instance = cfl_variant_create_from_array(value);
 
     if (value_instance == NULL) {
@@ -445,6 +470,11 @@ int cfl_array_append_kvlist(struct cfl_array *array, struct cfl_kvlist *value)
         return -1;
     }
 
+    if (cfl_container_array_contains_kvlist(array, value) ||
+        cfl_container_kvlist_contains_array(value, array)) {
+        return -1;
+    }
+
     value_instance = cfl_variant_create_from_kvlist(value);
     if (value_instance == NULL) {
         return -1;
@@ -473,17 +503,36 @@ int cfl_array_print(FILE *fp, struct cfl_array *array)
 
     size = array->entry_count;
     if (size == 0) {
-        fputs("[]", fp);
+        if (fputs("[]", fp) == EOF) {
+            return -1;
+        }
+
         return 0;
     }
 
-    fputs("[", fp);
+    if (fputc('[', fp) == EOF) {
+        return -1;
+    }
+
     for (i=0; i<size-1; i++) {
         ret = cfl_variant_print(fp, array->entries[i]);
-        fputs(",", fp);
+        if (ret < 0) {
+            return -1;
+        }
+
+        if (fputc(',', fp) == EOF) {
+            return -1;
+        }
     }
+
     ret = cfl_variant_print(fp, array->entries[size-1]);
-    fputs("]", fp);
+    if (ret < 0) {
+        return -1;
+    }
+
+    if (fputc(']', fp) == EOF) {
+        return -1;
+    }
 
     return ret;
 }

@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <cfl/cfl.h>
 #include <cfl/cfl_variant.h>
 #include <cfl/cfl_compat.h>
@@ -383,6 +384,48 @@ static void test_variant_print_double()
     }
 }
 
+static void test_variant_print_nonfinite_double()
+{
+    int ret;
+    int i;
+    double inputs[] = {HUGE_VAL, -HUGE_VAL, HUGE_VAL - HUGE_VAL};
+    char *expect = "null";
+
+    FILE *fp = NULL;
+    struct cfl_variant *val = NULL;
+
+    for (i=0; i<sizeof(inputs)/sizeof(double); i++) {
+        fp = tmpfile();
+        if (!TEST_CHECK(fp != NULL)) {
+            TEST_MSG("%d: fp is NULL", i);
+            continue;
+        }
+
+        val = cfl_variant_create_from_double(inputs[i]);
+        if (!TEST_CHECK(val != NULL)) {
+            TEST_MSG("%d: cfl_variant_create_from_double failed", i);
+            fclose(fp);
+            continue;
+        }
+
+        ret = cfl_variant_print(fp, val);
+        if (!TEST_CHECK(ret > 0)) {
+            TEST_MSG("%d:cfl_variant_print failed", i);
+            cfl_variant_destroy(val);
+            fclose(fp);
+            continue;
+        }
+
+        ret = compare(fp, expect, 0);
+        if (!TEST_CHECK(ret == 0)) {
+            TEST_MSG("%d:compare failed", i);
+        }
+
+        cfl_variant_destroy(val);
+        fclose(fp);
+    }
+}
+
 static void test_variant_print_string()
 {
     int ret;
@@ -628,7 +671,7 @@ static void test_variant_print_reference()
 {
     int ret;
     int *input = (int*)0x12345678;
-    char expect[] = "0x12345678";
+    char expect[] = "null";
 
     FILE *fp = NULL;
     struct cfl_variant *val = NULL;
@@ -703,6 +746,7 @@ TEST_LIST = {
     {"variant_print_int64", test_variant_print_int64},
     {"variant_print_uint64", test_variant_print_uint64},
     {"variant_print_double", test_variant_print_double},
+    {"variant_print_nonfinite_double", test_variant_print_nonfinite_double},
     {"variant_print_string", test_variant_print_string},
     {"variant_print_string_s", test_variant_print_string_s},
     {"variant_print_sized_string_without_nul", test_variant_print_sized_string_without_nul},

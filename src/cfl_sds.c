@@ -187,8 +187,13 @@ cfl_sds_t cfl_sds_cat(cfl_sds_t s, const char *str, int len)
 {
     size_t avail;
     size_t append_len;
+    size_t source_offset;
+    uintptr_t buffer_addr;
+    uintptr_t source_addr;
     struct cfl_sds *head;
     cfl_sds_t tmp = NULL;
+    const char *source;
+    int source_in_buffer;
 
     if (s == NULL || str == NULL || len < 0) {
         return NULL;
@@ -204,6 +209,28 @@ cfl_sds_t cfl_sds_cat(cfl_sds_t s, const char *str, int len)
         return NULL;
     }
 
+    source = str;
+    source_in_buffer = 0;
+    source_offset = 0;
+
+    /*
+     * This flat-address check lets self-appends survive realloc. If the
+     * source starts inside the SDS buffer, the whole source slice must also
+     * fit in that allocation.
+     */
+    buffer_addr = (uintptr_t) s;
+    source_addr = (uintptr_t) str;
+    if (source_addr >= buffer_addr &&
+        (source_addr - buffer_addr) <= head->alloc) {
+        source_offset = (size_t) (source_addr - buffer_addr);
+
+        if (append_len - 1 > head->alloc - source_offset) {
+            return NULL;
+        }
+
+        source_in_buffer = 1;
+    }
+
     avail = cfl_sds_avail(s);
     if (avail < append_len) {
         tmp = cfl_sds_increase(s, append_len - avail);
@@ -213,12 +240,16 @@ cfl_sds_t cfl_sds_cat(cfl_sds_t s, const char *str, int len)
         s = tmp;
     }
 
+    if (source_in_buffer) {
+        source = s + source_offset;
+    }
+
     head = CFL_SDS_HEADER(s);
     if (head->len > UINT64_MAX - append_len) {
         return NULL;
     }
 
-    memcpy((char *) (s + head->len), str, append_len);
+    memmove((char *) (s + head->len), source, append_len);
 
     head->len += append_len;
     s[head->len] = '\0';

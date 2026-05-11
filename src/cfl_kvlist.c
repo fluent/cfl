@@ -25,6 +25,8 @@
 
 #include <limits.h>
 
+#include <cfl/cfl_container.h>
+
 static int print_json_string(FILE *fp, const char *str, size_t len)
 {
     size_t i;
@@ -322,6 +324,11 @@ int cfl_kvlist_insert_array_s(struct cfl_kvlist *list,
         return -1;
     }
 
+    if (cfl_container_kvlist_contains_array(list, value) ||
+        cfl_container_array_contains_kvlist(value, list)) {
+        return -1;
+    }
+
     value_instance = cfl_variant_create_from_array(value);
 
     if (value_instance == NULL) {
@@ -374,6 +381,11 @@ int cfl_kvlist_insert_kvlist_s(struct cfl_kvlist *list,
         return -1;
     }
 
+    if (cfl_container_kvlist_contains_kvlist(list, value) ||
+        cfl_container_kvlist_contains_kvlist(value, list)) {
+        return -1;
+    }
+
     value_instance = cfl_variant_create_from_kvlist(value);
     if (value_instance == NULL) {
         return -1;
@@ -397,6 +409,24 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
     struct cfl_kvpair *pair;
 
     if (list == NULL || key == NULL || value == NULL || key_size > INT_MAX) {
+        return -1;
+    }
+
+    if (cfl_container_kvlist_contains_variant(list, value)) {
+        return -1;
+    }
+
+    if (cfl_container_variant_contains_kvlist(value, list)) {
+        return -1;
+    }
+
+    if (value->type == CFL_VARIANT_ARRAY &&
+        cfl_container_kvlist_contains_array(list, value->data.as_array)) {
+        return -1;
+    }
+
+    if (value->type == CFL_VARIANT_KVLIST &&
+        cfl_container_kvlist_contains_kvlist(list, value->data.as_kvlist)) {
         return -1;
     }
 
@@ -596,7 +626,10 @@ int cfl_kvlist_print(FILE *fp, struct cfl_kvlist *list)
     }
 
     printed = CFL_FALSE;
-    fputs("{", fp);
+    if (fputc('{', fp) == EOF) {
+        return -1;
+    }
+
     cfl_list_foreach(head, &list->list) {
         pair = cfl_list_entry(head, struct cfl_kvpair, _head);
         if (pair == NULL || pair->key == NULL || pair->val == NULL) {
@@ -604,7 +637,9 @@ int cfl_kvlist_print(FILE *fp, struct cfl_kvlist *list)
         }
 
         if (printed) {
-            fputs(",", fp);
+            if (fputc(',', fp) == EOF) {
+                return -1;
+            }
         }
 
         key_size = cfl_sds_len(pair->key);
@@ -613,7 +648,10 @@ int cfl_kvlist_print(FILE *fp, struct cfl_kvlist *list)
             return -1;
         }
 
-        fputs(":", fp);
+        if (fputc(':', fp) == EOF) {
+            return -1;
+        }
+
         ret = cfl_variant_print(fp, pair->val);
         if (ret < 0) {
             return -1;
@@ -621,7 +659,10 @@ int cfl_kvlist_print(FILE *fp, struct cfl_kvlist *list)
 
         printed = CFL_TRUE;
     }
-    fputs("}", fp);
+
+    if (fputc('}', fp) == EOF) {
+        return -1;
+    }
 
     return ret;
 }
@@ -630,16 +671,25 @@ int cfl_kvlist_contains(struct cfl_kvlist *kvlist, char *name)
 {
     struct cfl_list   *iterator;
     struct cfl_kvpair *pair;
+    size_t             name_len;
+    size_t             key_len;
 
     if (kvlist == NULL || name == NULL) {
         return CFL_FALSE;
     }
 
+    name_len = strlen(name);
+
     cfl_list_foreach(iterator, &kvlist->list) {
         pair = cfl_list_entry(iterator,
                               struct cfl_kvpair, _head);
 
-        if (strcasecmp(pair->key, name) == 0) {
+        key_len = cfl_sds_len(pair->key);
+        if (key_len != name_len) {
+            continue;
+        }
+
+        if (strncasecmp(pair->key, name, name_len) == 0) {
             return CFL_TRUE;
         }
     }
@@ -653,21 +703,33 @@ int cfl_kvlist_remove(struct cfl_kvlist *kvlist, char *name)
     struct cfl_list   *iterator_backup;
     struct cfl_list   *iterator;
     struct cfl_kvpair *pair;
+    size_t             name_len;
+    size_t             key_len;
+    int                removed;
 
     if (kvlist == NULL || name == NULL) {
         return CFL_FALSE;
     }
 
+    name_len = strlen(name);
+    removed = CFL_FALSE;
+
     cfl_list_foreach_safe(iterator, iterator_backup, &kvlist->list) {
         pair = cfl_list_entry(iterator,
                               struct cfl_kvpair, _head);
 
-        if (strcasecmp(pair->key, name) == 0) {
+        key_len = cfl_sds_len(pair->key);
+        if (key_len != name_len) {
+            continue;
+        }
+
+        if (strncasecmp(pair->key, name, name_len) == 0) {
             cfl_kvpair_destroy(pair);
+            removed = CFL_TRUE;
         }
     }
 
-    return CFL_TRUE;
+    return removed;
 }
 
 

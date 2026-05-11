@@ -61,6 +61,11 @@ static inline size_t cfl_array_size(struct cfl_array *array)
     return array->entry_count;
 }
 
+/*
+ * Append APIs take ownership of the value on success. A variant, array, or
+ * kvlist must have a single owning parent; inserting the same pointer into
+ * multiple containers is unsupported and can result in double-free.
+ */
 int cfl_array_append(struct cfl_array *array, struct cfl_variant *value);
 int cfl_array_append_string(struct cfl_array *array, char *value);
 int cfl_array_append_string_s(struct cfl_array *array, char *str, size_t str_len, int referenced);
