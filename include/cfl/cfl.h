@@ -35,6 +35,7 @@
 #include <cfl/cfl_array.h>
 #include <cfl/cfl_kv.h>
 #include <cfl/cfl_kvlist.h>
+#include <cfl/cfl_checksum.h>
 #include <cfl/cfl_time.h>
 #include <cfl/cfl_variant.h>
 #include <cfl/cfl_object.h>

@@ -21,6 +21,30 @@
 #include <cfl/cfl.h>
 #include "cfl_tests_internal.h"
 
+static int compare(FILE *fp, char *expect)
+{
+    size_t len;
+    size_t ret_fp;
+    char buf[128] = {0};
+
+    len = strlen(expect);
+
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        return -1;
+    }
+
+    ret_fp = fread(&buf[0], 1, sizeof(buf) - 1, fp);
+    if (ret_fp == 0 && ferror(fp)) {
+        return -1;
+    }
+
+    if (strlen(buf) != len) {
+        return -1;
+    }
+
+    return strncmp(expect, &buf[0], len);
+}
+
 static void test_basics()
 {
     int ret;
@@ -52,7 +76,46 @@ static void test_basics()
     cfl_object_destroy(object);
 }
 
+static void test_replace_and_print()
+{
+    int ret;
+    FILE *fp;
+    struct cfl_object *object;
+    struct cfl_variant *variant;
+
+    object = cfl_object_create();
+    TEST_CHECK(object != NULL);
+
+    variant = cfl_variant_create_from_string("first");
+    TEST_CHECK(variant != NULL);
+
+    ret = cfl_object_set(object, CFL_OBJECT_VARIANT, variant);
+    TEST_CHECK(ret == 0);
+
+    variant = cfl_variant_create_from_string("second");
+    TEST_CHECK(variant != NULL);
+
+    ret = cfl_object_set(object, CFL_OBJECT_VARIANT, variant);
+    TEST_CHECK(ret == 0);
+
+    ret = cfl_object_set(object, CFL_OBJECT_VARIANT, NULL);
+    TEST_CHECK(ret == -1);
+
+    fp = tmpfile();
+    TEST_CHECK(fp != NULL);
+
+    ret = cfl_object_print(fp, object);
+    TEST_CHECK(ret == 0);
+
+    ret = compare(fp, "\"second\"\n");
+    TEST_CHECK(ret == 0);
+
+    fclose(fp);
+    cfl_object_destroy(object);
+}
+
 TEST_LIST = {
     { "test_basics", test_basics },
+    { "test_replace_and_print", test_replace_and_print },
     { 0 }
 };

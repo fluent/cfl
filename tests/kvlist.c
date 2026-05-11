@@ -24,6 +24,30 @@
 
 #include "cfl_tests_internal.h"
 
+static int compare(FILE *fp, char *expect)
+{
+    size_t len;
+    size_t ret_fp;
+    char buf[256] = {0};
+
+    len = strlen(expect);
+
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        return -1;
+    }
+
+    ret_fp = fread(&buf[0], 1, sizeof(buf) - 1, fp);
+    if (ret_fp == 0 && ferror(fp)) {
+        return -1;
+    }
+
+    if (strlen(buf) != len) {
+        return -1;
+    }
+
+    return strncmp(expect, &buf[0], len);
+}
+
 static void create_destroy()
 {
     struct cfl_kvlist *list = NULL;
@@ -1166,6 +1190,82 @@ static void test_basics()
     cfl_kvlist_destroy(list);
 }
 
+static void null_inputs()
+{
+    int ret;
+    struct cfl_kvlist *list;
+    struct cfl_variant *variant;
+
+    cfl_kvlist_destroy(NULL);
+
+    ret = cfl_kvlist_count(NULL);
+    TEST_CHECK(ret == 0);
+
+    variant = cfl_kvlist_fetch(NULL, "key");
+    TEST_CHECK(variant == NULL);
+
+    variant = cfl_kvlist_fetch_s(NULL, "key", 3);
+    TEST_CHECK(variant == NULL);
+
+    ret = cfl_kvlist_contains(NULL, "key");
+    TEST_CHECK(ret == CFL_FALSE);
+
+    ret = cfl_kvlist_remove(NULL, "key");
+    TEST_CHECK(ret == CFL_FALSE);
+
+    ret = cfl_kvlist_insert_string(NULL, "key", "value");
+    TEST_CHECK(ret == -1);
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    ret = cfl_kvlist_insert_string(list, NULL, "value");
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_kvlist_insert_bytes(list, "key", NULL, 1, CFL_TRUE);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_kvlist_insert_array(list, "key", NULL);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_kvlist_insert_kvlist(list, "key", NULL);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_kvlist_insert(list, "key", NULL);
+    TEST_CHECK(ret == -1);
+
+    variant = cfl_kvlist_fetch(list, NULL);
+    TEST_CHECK(variant == NULL);
+
+    cfl_kvpair_destroy(NULL);
+    cfl_kvlist_destroy(list);
+}
+
+static void print_escaped_keys()
+{
+    int ret;
+    FILE *fp;
+    struct cfl_kvlist *list;
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    ret = cfl_kvlist_insert_string(list, "a\"b\n", "v\n");
+    TEST_CHECK(ret == 0);
+
+    fp = tmpfile();
+    TEST_CHECK(fp != NULL);
+
+    ret = cfl_kvlist_print(fp, list);
+    TEST_CHECK(ret > 0);
+
+    ret = compare(fp, "{\"a\\\"b\\n\":\"v\\n\"}");
+    TEST_CHECK(ret == 0);
+
+    fclose(fp);
+    cfl_kvlist_destroy(list);
+}
+
 TEST_LIST = {
     {"create_destroy",  create_destroy},
     {"count", count},
@@ -1193,5 +1293,7 @@ TEST_LIST = {
     {"insert_empty_array_s", insert_empty_array_s},
     {"insert_empty_kvlist_s", insert_empty_kvlist_s},
     {"basics", test_basics},
+    {"null_inputs", null_inputs},
+    {"print_escaped_keys", print_escaped_keys},
     { 0 }
 };

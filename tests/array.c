@@ -363,6 +363,44 @@ static void remove_by_reference()
     cfl_array_destroy(arr);
 }
 
+static void null_inputs()
+{
+    int ret;
+    struct cfl_variant *var;
+
+    TEST_CHECK(cfl_array_size(NULL) == 0);
+
+    var = cfl_array_fetch_by_index(NULL, 0);
+    TEST_CHECK(var == NULL);
+
+    ret = cfl_array_resizable(NULL, CFL_TRUE);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_array_append(NULL, NULL);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_array_append_string(NULL, "value");
+    TEST_CHECK(ret < 0);
+
+    ret = cfl_array_append_string(NULL, NULL);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_array_append_bytes(NULL, NULL, 1, CFL_TRUE);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_array_append_array(NULL, NULL);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_array_append_kvlist(NULL, NULL);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_array_remove_by_index(NULL, 0);
+    TEST_CHECK(ret == -1);
+
+    ret = cfl_array_remove_by_reference(NULL, NULL);
+    TEST_CHECK(ret == -1);
+}
+
 TEST_LIST = {
     {"create",              create},
     {"resizable",           resizable},
@@ -382,5 +420,6 @@ TEST_LIST = {
     {"append_kvlist",       append_kvlist},
     {"remove_by_index",     remove_by_index},
     {"remove_by_reference", remove_by_reference},
+    {"null_inputs",         null_inputs},
     { 0 }
 };
