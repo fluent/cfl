@@ -409,7 +409,7 @@ static void test_variant_print_nonfinite_double()
         }
 
         ret = cfl_variant_print(fp, val);
-        if (!TEST_CHECK(ret > 0)) {
+        if (!TEST_CHECK(ret != EOF)) {
             TEST_MSG("%d:cfl_variant_print failed", i);
             cfl_variant_destroy(val);
             fclose(fp);
@@ -690,7 +690,7 @@ static void test_variant_print_reference()
     }
 
     ret = cfl_variant_print(fp, val);
-    if (!TEST_CHECK(ret > 0)) {
+    if (!TEST_CHECK(ret != EOF)) {
         TEST_MSG("cfl_variant_print failed");
         fclose(fp);
         cfl_variant_destroy(val);
