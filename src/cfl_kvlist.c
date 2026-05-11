@@ -416,18 +416,21 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    if (cfl_container_variant_contains_kvlist(value, list)) {
-        return -1;
-    }
+    /* Only container-valued variants can participate in container cycles. */
+    if (value->type == CFL_VARIANT_ARRAY || value->type == CFL_VARIANT_KVLIST) {
+        if (cfl_container_variant_contains_kvlist(value, list)) {
+            return -1;
+        }
 
-    if (value->type == CFL_VARIANT_ARRAY &&
-        cfl_container_kvlist_contains_array(list, value->data.as_array)) {
-        return -1;
-    }
+        if (value->type == CFL_VARIANT_ARRAY &&
+            cfl_container_kvlist_contains_array(list, value->data.as_array)) {
+            return -1;
+        }
 
-    if (value->type == CFL_VARIANT_KVLIST &&
-        cfl_container_kvlist_contains_kvlist(list, value->data.as_kvlist)) {
-        return -1;
+        if (value->type == CFL_VARIANT_KVLIST &&
+            cfl_container_kvlist_contains_kvlist(list, value->data.as_kvlist)) {
+            return -1;
+        }
     }
 
     pair = malloc(sizeof(struct cfl_kvpair));

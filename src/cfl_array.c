@@ -156,18 +156,21 @@ int cfl_array_append(struct cfl_array *array,
         return -1;
     }
 
-    if (cfl_container_variant_contains_array(value, array)) {
-        return -1;
-    }
+    /* Only container-valued variants can participate in container cycles. */
+    if (value->type == CFL_VARIANT_ARRAY || value->type == CFL_VARIANT_KVLIST) {
+        if (cfl_container_variant_contains_array(value, array)) {
+            return -1;
+        }
 
-    if (value->type == CFL_VARIANT_ARRAY &&
-        cfl_container_array_contains_array(array, value->data.as_array)) {
-        return -1;
-    }
+        if (value->type == CFL_VARIANT_ARRAY &&
+            cfl_container_array_contains_array(array, value->data.as_array)) {
+            return -1;
+        }
 
-    if (value->type == CFL_VARIANT_KVLIST &&
-        cfl_container_array_contains_kvlist(array, value->data.as_kvlist)) {
-        return -1;
+        if (value->type == CFL_VARIANT_KVLIST &&
+            cfl_container_array_contains_kvlist(array, value->data.as_kvlist)) {
+            return -1;
+        }
     }
 
     if (array->entry_count >= array->slot_count) {
