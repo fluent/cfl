@@ -106,7 +106,11 @@ jobs:
     steps:
       - name: Set up base image dependencies
         run: |
-          apt-get update
+          printf '%s\n' \
+            'deb http://archive.debian.org/debian buster main' \
+            'deb http://archive.debian.org/debian-security buster/updates main' \
+            > /etc/apt/sources.list
+          apt-get -o Acquire::Check-Valid-Until=false update
           apt-get install -y build-essential wget make gcc g++
 
       - name: Install CMake 3.20.0
