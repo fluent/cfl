@@ -24,12 +24,19 @@
 #include <cfl/cfl_compat.h>
 
 #include <limits.h>
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#define HEXDUMPFORMAT "%#x"
-#else
-#define HEXDUMPFORMAT "%p"
+#include <math.h>
+#if defined(_MSC_VER)
+#include <float.h>
 #endif
+
+static int double_is_finite(double value)
+{
+#if defined(_MSC_VER)
+    return _finite(value);
+#else
+    return isfinite(value);
+#endif
+}
 
 static int print_json_string(FILE *fp, const char *str, size_t len)
 {
@@ -138,7 +145,12 @@ int cfl_variant_print(FILE *fp, struct cfl_variant *val)
         ret = fprintf(fp, "%" PRIu64, val->data.as_uint64);
         break;
     case CFL_VARIANT_DOUBLE:
-        ret = fprintf(fp, "%lf", val->data.as_double);
+        if (!double_is_finite(val->data.as_double)) {
+            ret = fputs("null", fp);
+        }
+        else {
+            ret = fprintf(fp, "%lf", val->data.as_double);
+        }
         break;
     case CFL_VARIANT_NULL:
         ret = fprintf(fp, "null");
@@ -159,7 +171,7 @@ int cfl_variant_print(FILE *fp, struct cfl_variant *val)
         break;
 
     case CFL_VARIANT_REFERENCE:
-        ret = fprintf(fp, HEXDUMPFORMAT, val->data.as_reference);
+        ret = fputs("null", fp);
         break;
     case CFL_VARIANT_ARRAY:
         ret = cfl_array_print(fp, val->data.as_array);

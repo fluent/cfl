@@ -26,6 +26,7 @@ set(PUBLIC_HEADERS
   cfl_atomic.h
   cfl_checksum.h
   cfl_compat.h
+  cfl_container.h
   cfl_found.h
   cfl_hash.h
   cfl_info.h
