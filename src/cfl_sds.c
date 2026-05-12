@@ -224,7 +224,7 @@ cfl_sds_t cfl_sds_cat(cfl_sds_t s, const char *str, int len)
         (source_addr - buffer_addr) <= head->alloc) {
         source_offset = (size_t) (source_addr - buffer_addr);
 
-        if (append_len - 1 > head->alloc - source_offset) {
+        if (append_len - 1 >= head->alloc - source_offset) {
             return NULL;
         }
 
