@@ -482,6 +482,10 @@ int cfl_container_move_variant_to_array(struct cfl_array *array,
         return -1;
     }
 
+    if (variant->owned) {
+        return -1;
+    }
+
     if (variant->type == CFL_VARIANT_ARRAY) {
         child_array = variant->data.as_array;
 
@@ -526,6 +530,10 @@ int cfl_container_move_variant_to_kvlist(struct cfl_kvlist *kvlist,
     struct cfl_kvlist *child_kvlist;
 
     if (kvlist == NULL || variant == NULL) {
+        return -1;
+    }
+
+    if (variant->owned) {
         return -1;
     }
 

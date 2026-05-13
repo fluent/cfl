@@ -389,6 +389,47 @@ static void append_rejects_shared_array_between_parents()
     cfl_array_destroy(arr_a);
 }
 
+static void append_rejects_owned_value()
+{
+    int ret;
+    struct cfl_array *arr_a;
+    struct cfl_array *arr_b;
+    struct cfl_variant *value;
+
+    arr_a = cfl_array_create(1);
+    if (!TEST_CHECK(arr_a != NULL)) {
+        return;
+    }
+
+    arr_b = cfl_array_create(1);
+    if (!TEST_CHECK(arr_b != NULL)) {
+        cfl_array_destroy(arr_a);
+        return;
+    }
+
+    value = cfl_variant_create_from_string("value");
+    if (!TEST_CHECK(value != NULL)) {
+        cfl_array_destroy(arr_b);
+        cfl_array_destroy(arr_a);
+        return;
+    }
+
+    ret = cfl_array_append(arr_a, value);
+    if (!TEST_CHECK(ret == 0)) {
+        cfl_variant_destroy(value);
+        cfl_array_destroy(arr_b);
+        cfl_array_destroy(arr_a);
+        return;
+    }
+
+    ret = cfl_array_append(arr_b, value);
+    TEST_CHECK(ret == -1);
+    TEST_CHECK(cfl_array_size(arr_b) == 0);
+
+    cfl_array_destroy(arr_b);
+    cfl_array_destroy(arr_a);
+}
+
 static void append_kvlist_rejects_cycles()
 {
     int ret;
@@ -540,6 +581,7 @@ TEST_LIST = {
     {"append_array_rejects_cycles", append_array_rejects_cycles},
     {"append_variant_rejects_cycles", append_variant_rejects_cycles},
     {"append_rejects_shared_array_between_parents", append_rejects_shared_array_between_parents},
+    {"append_rejects_owned_value", append_rejects_owned_value},
     {"append_kvlist_rejects_cycles", append_kvlist_rejects_cycles},
     {"remove_by_index",     remove_by_index},
     {"remove_by_reference", remove_by_reference},
