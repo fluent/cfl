@@ -1252,16 +1252,28 @@ static void print_escaped_keys()
     struct cfl_kvlist *list;
 
     list = cfl_kvlist_create();
-    TEST_CHECK(list != NULL);
+    if (!TEST_CHECK(list != NULL)) {
+        return;
+    }
 
     ret = cfl_kvlist_insert_string(list, "a\"b\n", "v\n");
-    TEST_CHECK(ret == 0);
+    if (!TEST_CHECK(ret == 0)) {
+        cfl_kvlist_destroy(list);
+        return;
+    }
 
     fp = tmpfile();
-    TEST_CHECK(fp != NULL);
+    if (!TEST_CHECK(fp != NULL)) {
+        cfl_kvlist_destroy(list);
+        return;
+    }
 
     ret = cfl_kvlist_print(fp, list);
-    TEST_CHECK(ret > 0);
+    if (!TEST_CHECK(ret > 0)) {
+        fclose(fp);
+        cfl_kvlist_destroy(list);
+        return;
+    }
 
     ret = compare(fp, "{\"a\\\"b\\n\":\"v\\n\"}");
     TEST_CHECK(ret == 0);
@@ -1470,7 +1482,7 @@ static void move_taken_value_between_kvlists()
     cfl_kvlist_destroy(destination);
 }
 
-static void insert_then_detach_move_compatibility()
+static void insert_rejects_owned_value()
 {
     int ret;
     struct cfl_list *head;
@@ -1478,7 +1490,6 @@ static void insert_then_detach_move_compatibility()
     struct cfl_kvlist *destination;
     struct cfl_kvpair *pair;
     struct cfl_variant *value;
-    struct cfl_variant *moved;
 
     source = cfl_kvlist_create();
     TEST_CHECK(source != NULL);
@@ -1494,16 +1505,8 @@ static void insert_then_detach_move_compatibility()
     value = pair->val;
 
     ret = cfl_kvlist_insert(destination, "destination", value);
-    TEST_CHECK(ret == 0);
-
-    pair->val = NULL;
-    cfl_kvpair_destroy(pair);
-    TEST_CHECK(cfl_kvlist_count(source) == 0);
-
-    moved = cfl_kvlist_fetch(destination, "destination");
-    TEST_CHECK(moved == value);
-    TEST_CHECK(moved->type == CFL_VARIANT_STRING);
-    TEST_CHECK(strcmp(moved->data.as_string, "value") == 0);
+    TEST_CHECK(ret == -1);
+    TEST_CHECK(cfl_kvlist_count(destination) == 0);
 
     cfl_kvlist_destroy(source);
     cfl_kvlist_destroy(destination);
@@ -1545,6 +1548,6 @@ TEST_LIST = {
     {"reject_shared_kvlist_between_parents", reject_shared_kvlist_between_parents},
     {"reject_array_cycles", reject_array_cycles},
     {"move_taken_value_between_kvlists", move_taken_value_between_kvlists},
-    {"insert_then_detach_move_compatibility", insert_then_detach_move_compatibility},
+    {"insert_rejects_owned_value", insert_rejects_owned_value},
     { 0 }
 };
