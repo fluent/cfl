@@ -45,4 +45,15 @@ int cfl_container_variant_contains_kvlist(struct cfl_variant *variant,
 int cfl_container_variant_contains_variant(struct cfl_variant *variant,
                                            struct cfl_variant *target);
 
+int cfl_container_claim_array(struct cfl_array *array,
+                              struct cfl_variant *owner);
+int cfl_container_claim_kvlist(struct cfl_kvlist *kvlist,
+                               struct cfl_variant *owner);
+int cfl_container_adopt_variant(struct cfl_variant *variant);
+int cfl_container_move_variant_to_array(struct cfl_array *array,
+                                        struct cfl_variant *variant);
+int cfl_container_move_variant_to_kvlist(struct cfl_kvlist *kvlist,
+                                         struct cfl_variant *variant);
+void cfl_container_release_variant(struct cfl_variant *variant);
+
 #endif

@@ -305,6 +305,32 @@ static void test_reject_nested_variant_reuse()
     cfl_object_destroy(object);
 }
 
+static void test_reject_shared_kvlist_between_objects()
+{
+    int ret;
+    struct cfl_object *object_a;
+    struct cfl_object *object_b;
+    struct cfl_kvlist *list;
+
+    object_a = cfl_object_create();
+    TEST_CHECK(object_a != NULL);
+
+    object_b = cfl_object_create();
+    TEST_CHECK(object_b != NULL);
+
+    list = cfl_kvlist_create();
+    TEST_CHECK(list != NULL);
+
+    ret = cfl_object_set(object_a, CFL_OBJECT_KVLIST, list);
+    TEST_CHECK(ret == 0);
+
+    ret = cfl_object_set(object_b, CFL_OBJECT_KVLIST, list);
+    TEST_CHECK(ret == -1);
+
+    cfl_object_destroy(object_b);
+    cfl_object_destroy(object_a);
+}
+
 TEST_LIST = {
     { "test_basics", test_basics },
     { "test_replace_and_print", test_replace_and_print },
@@ -313,5 +339,6 @@ TEST_LIST = {
     { "test_reject_nested_kvlist_reuse", test_reject_nested_kvlist_reuse },
     { "test_reject_nested_array_reuse", test_reject_nested_array_reuse },
     { "test_reject_nested_variant_reuse", test_reject_nested_variant_reuse },
+    { "test_reject_shared_kvlist_between_objects", test_reject_shared_kvlist_between_objects },
     { 0 }
 };

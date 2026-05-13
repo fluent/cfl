@@ -21,6 +21,7 @@
 #include <cfl/cfl_variant.h>
 #include <cfl/cfl_array.h>
 #include <cfl/cfl_kvlist.h>
+#include <cfl/cfl_container.h>
 #include <cfl/cfl_compat.h>
 
 #include <limits.h>
@@ -337,6 +338,12 @@ struct cfl_variant *cfl_variant_create_from_array(struct cfl_array *value)
 
     instance = cfl_variant_create();
     if (instance != NULL) {
+        if (value != NULL &&
+            cfl_container_claim_array(value, instance) != 0) {
+            free(instance);
+            return NULL;
+        }
+
         instance->data.as_array = value;
         instance->type = CFL_VARIANT_ARRAY;
     }
@@ -350,6 +357,12 @@ struct cfl_variant *cfl_variant_create_from_kvlist(struct cfl_kvlist *value)
 
     instance = cfl_variant_create();
     if (instance != NULL) {
+        if (value != NULL &&
+            cfl_container_claim_kvlist(value, instance) != 0) {
+            free(instance);
+            return NULL;
+        }
+
         instance->data.as_kvlist = value;
         instance->type = CFL_VARIANT_KVLIST;
     }
@@ -389,6 +402,8 @@ void cfl_variant_destroy(struct cfl_variant *instance)
     if (!instance) {
         return;
     }
+
+    cfl_container_release_variant(instance);
 
     if (instance->type == CFL_VARIANT_STRING ||
         instance->type == CFL_VARIANT_BYTES) {
