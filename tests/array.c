@@ -336,10 +336,10 @@ static void append_array_rejects_cycles()
     TEST_CHECK(ret == 0);
 
     ret = cfl_array_append_array(arr, child);
-    TEST_CHECK(ret == -1);
+    TEST_CHECK(ret < 0);
 
     ret = cfl_array_append_array(child, arr);
-    TEST_CHECK(ret == -1);
+    TEST_CHECK(ret < 0);
 
     cfl_array_destroy(arr);
 }
@@ -362,26 +362,31 @@ static void append_variant_rejects_cycles()
     cfl_variant_destroy(variant);
 }
 
-static void append_rejects_duplicate_variant()
+static void append_rejects_shared_array_between_parents()
 {
     int ret;
-    struct cfl_array *arr;
-    struct cfl_variant *variant;
+    struct cfl_array *arr_a;
+    struct cfl_array *arr_b;
+    struct cfl_array *child;
 
-    arr = cfl_array_create(2);
-    TEST_CHECK(arr != NULL);
+    arr_a = cfl_array_create(1);
+    TEST_CHECK(arr_a != NULL);
 
-    variant = cfl_variant_create_from_string("value");
-    TEST_CHECK(variant != NULL);
+    arr_b = cfl_array_create(1);
+    TEST_CHECK(arr_b != NULL);
 
-    ret = cfl_array_append(arr, variant);
+    child = cfl_array_create(0);
+    TEST_CHECK(child != NULL);
+
+    ret = cfl_array_append_array(arr_a, child);
     TEST_CHECK(ret == 0);
 
-    ret = cfl_array_append(arr, variant);
+    ret = cfl_array_append_array(arr_b, child);
     TEST_CHECK(ret == -1);
-    TEST_CHECK(cfl_array_size(arr) == 1);
+    TEST_CHECK(cfl_array_size(arr_b) == 0);
 
-    cfl_array_destroy(arr);
+    cfl_array_destroy(arr_b);
+    cfl_array_destroy(arr_a);
 }
 
 static void append_kvlist_rejects_cycles()
@@ -400,7 +405,7 @@ static void append_kvlist_rejects_cycles()
     TEST_CHECK(ret == 0);
 
     ret = cfl_kvlist_insert_array(kvlist, "cycle", arr);
-    TEST_CHECK(ret == -1);
+    TEST_CHECK(ret < 0);
 
     cfl_array_destroy(arr);
 }
@@ -534,7 +539,7 @@ TEST_LIST = {
     {"append_kvlist",       append_kvlist},
     {"append_array_rejects_cycles", append_array_rejects_cycles},
     {"append_variant_rejects_cycles", append_variant_rejects_cycles},
-    {"append_rejects_duplicate_variant", append_rejects_duplicate_variant},
+    {"append_rejects_shared_array_between_parents", append_rejects_shared_array_between_parents},
     {"append_kvlist_rejects_cycles", append_kvlist_rejects_cycles},
     {"remove_by_index",     remove_by_index},
     {"remove_by_reference", remove_by_reference},

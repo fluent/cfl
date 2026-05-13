@@ -95,6 +95,10 @@ struct cfl_kvlist *cfl_kvlist_create()
     }
 
     cfl_list_init(&list->list);
+    list->owner = NULL;
+    list->parent_array = NULL;
+    list->parent_kvlist = NULL;
+
     return list;
 }
 
@@ -324,11 +328,6 @@ int cfl_kvlist_insert_array_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    if (cfl_container_kvlist_contains_array(list, value) ||
-        cfl_container_array_contains_kvlist(value, list)) {
-        return -1;
-    }
-
     value_instance = cfl_variant_create_from_array(value);
 
     if (value_instance == NULL) {
@@ -338,6 +337,8 @@ int cfl_kvlist_insert_array_s(struct cfl_kvlist *list,
     result = cfl_kvlist_insert_s(list, key, key_size, value_instance);
 
     if (result) {
+        cfl_container_release_variant(value_instance);
+        value_instance->data.as_array = NULL;
         cfl_variant_destroy(value_instance);
 
         return -2;
@@ -364,7 +365,7 @@ int cfl_kvlist_insert_new_array_s(struct cfl_kvlist *list,
     }
 
     result = cfl_kvlist_insert_array_s(list, key, key_size, value);
-    if (result == -1) {
+    if (result < 0) {
         cfl_array_destroy(value);
     }
 
@@ -381,8 +382,7 @@ int cfl_kvlist_insert_kvlist_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    if (cfl_container_kvlist_contains_kvlist(list, value) ||
-        cfl_container_kvlist_contains_kvlist(value, list)) {
+    if (list == value) {
         return -1;
     }
 
@@ -394,6 +394,8 @@ int cfl_kvlist_insert_kvlist_s(struct cfl_kvlist *list,
     result = cfl_kvlist_insert_s(list, key, key_size, value_instance);
 
     if (result) {
+        cfl_container_release_variant(value_instance);
+        value_instance->data.as_kvlist = NULL;
         cfl_variant_destroy(value_instance);
 
         return -2;
@@ -412,27 +414,6 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    if (cfl_container_kvlist_contains_variant(list, value)) {
-        return -1;
-    }
-
-    /* Only container-valued variants can participate in container cycles. */
-    if (value->type == CFL_VARIANT_ARRAY || value->type == CFL_VARIANT_KVLIST) {
-        if (cfl_container_variant_contains_kvlist(value, list)) {
-            return -1;
-        }
-
-        if (value->type == CFL_VARIANT_ARRAY &&
-            cfl_container_kvlist_contains_array(list, value->data.as_array)) {
-            return -1;
-        }
-
-        if (value->type == CFL_VARIANT_KVLIST &&
-            cfl_container_kvlist_contains_kvlist(list, value->data.as_kvlist)) {
-            return -1;
-        }
-    }
-
     pair = malloc(sizeof(struct cfl_kvpair));
     if (pair == NULL) {
         cfl_report_runtime_error();
@@ -444,6 +425,13 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
         free(pair);
 
         return -2;
+    }
+
+    if (cfl_container_move_variant_to_kvlist(list, value) != 0) {
+        cfl_sds_destroy(pair->key);
+        free(pair);
+
+        return -1;
     }
 
     pair->val = value;
@@ -753,4 +741,20 @@ void cfl_kvpair_destroy(struct cfl_kvpair *pair)
 
         free(pair);
     }
+}
+
+struct cfl_variant *cfl_kvpair_take_value(struct cfl_kvpair *pair)
+{
+    struct cfl_variant *value;
+
+    if (pair == NULL) {
+        return NULL;
+    }
+
+    value = pair->val;
+    pair->val = NULL;
+
+    cfl_container_release_variant(value);
+
+    return value;
 }

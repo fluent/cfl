@@ -69,126 +69,6 @@ static int reuses_current_root(struct cfl_object *o, int type, void *ptr)
     return CFL_FALSE;
 }
 
-static int kvlist_contains_current(struct cfl_kvlist *kvlist,
-                                   struct cfl_variant *current)
-{
-    if (cfl_container_kvlist_contains_variant(kvlist, current)) {
-        return CFL_TRUE;
-    }
-
-    if (current->type == CFL_VARIANT_KVLIST &&
-        cfl_container_kvlist_contains_kvlist(kvlist,
-                                             current->data.as_kvlist)) {
-        return CFL_TRUE;
-    }
-
-    if (current->type == CFL_VARIANT_ARRAY &&
-        cfl_container_kvlist_contains_array(kvlist,
-                                            current->data.as_array)) {
-        return CFL_TRUE;
-    }
-
-    return CFL_FALSE;
-}
-
-static int array_contains_current(struct cfl_array *array,
-                                  struct cfl_variant *current)
-{
-    if (cfl_container_array_contains_variant(array, current)) {
-        return CFL_TRUE;
-    }
-
-    if (current->type == CFL_VARIANT_KVLIST &&
-        cfl_container_array_contains_kvlist(array,
-                                            current->data.as_kvlist)) {
-        return CFL_TRUE;
-    }
-
-    if (current->type == CFL_VARIANT_ARRAY &&
-        cfl_container_array_contains_array(array,
-                                           current->data.as_array)) {
-        return CFL_TRUE;
-    }
-
-    return CFL_FALSE;
-}
-
-static int variant_contains_current(struct cfl_variant *variant,
-                                    struct cfl_variant *current)
-{
-    if (cfl_container_variant_contains_variant(variant, current)) {
-        return CFL_TRUE;
-    }
-
-    if (current->type == CFL_VARIANT_KVLIST &&
-        cfl_container_variant_contains_kvlist(variant,
-                                              current->data.as_kvlist)) {
-        return CFL_TRUE;
-    }
-
-    if (current->type == CFL_VARIANT_ARRAY &&
-        cfl_container_variant_contains_array(variant,
-                                             current->data.as_array)) {
-        return CFL_TRUE;
-    }
-
-    return CFL_FALSE;
-}
-
-static int current_contains_candidate(struct cfl_variant *current,
-                                      int type, void *ptr)
-{
-    struct cfl_variant *variant;
-
-    if (type == CFL_OBJECT_KVLIST) {
-        return cfl_container_variant_contains_kvlist(current, ptr);
-    }
-
-    if (type == CFL_OBJECT_ARRAY) {
-        return cfl_container_variant_contains_array(current, ptr);
-    }
-
-    if (type == CFL_OBJECT_VARIANT) {
-        variant = ptr;
-
-        if (cfl_container_variant_contains_variant(current, variant)) {
-            return CFL_TRUE;
-        }
-
-        if (variant->type == CFL_VARIANT_KVLIST &&
-            cfl_container_variant_contains_kvlist(current,
-                                                  variant->data.as_kvlist)) {
-            return CFL_TRUE;
-        }
-
-        if (variant->type == CFL_VARIANT_ARRAY &&
-            cfl_container_variant_contains_array(current,
-                                                 variant->data.as_array)) {
-            return CFL_TRUE;
-        }
-    }
-
-    return CFL_FALSE;
-}
-
-static int candidate_contains_current(struct cfl_variant *current,
-                                      int type, void *ptr)
-{
-    if (type == CFL_OBJECT_KVLIST) {
-        return kvlist_contains_current(ptr, current);
-    }
-
-    if (type == CFL_OBJECT_ARRAY) {
-        return array_contains_current(ptr, current);
-    }
-
-    if (type == CFL_OBJECT_VARIANT) {
-        return variant_contains_current(ptr, current);
-    }
-
-    return CFL_FALSE;
-}
-
 /*
  * Associate a CFL data type to the object. We only support kvlist, array and variant. Note
  * that everything is held as a variant internally.
@@ -196,6 +76,7 @@ static int candidate_contains_current(struct cfl_variant *current,
 int cfl_object_set(struct cfl_object *o, int type, void *ptr)
 {
     struct cfl_variant *variant;
+    int                 variant_created;
 
     if (!o || !ptr) {
         return -1;
@@ -206,27 +87,34 @@ int cfl_object_set(struct cfl_object *o, int type, void *ptr)
             o->type = type;
             return 0;
         }
-
-        if (current_contains_candidate(o->variant, type, ptr) ||
-            candidate_contains_current(o->variant, type, ptr)) {
-            return -1;
-        }
     }
+
+    variant_created = CFL_FALSE;
 
     if (type == CFL_OBJECT_KVLIST) {
         variant = cfl_variant_create_from_kvlist(ptr);
+        variant_created = CFL_TRUE;
     }
     else if (type == CFL_OBJECT_VARIANT) {
         variant = ptr;
     }
     else if (type == CFL_OBJECT_ARRAY) {
         variant = cfl_variant_create_from_array(ptr);
+        variant_created = CFL_TRUE;
     }
     else {
         return -1;
     }
 
     if (variant == NULL) {
+        return -1;
+    }
+
+    if (cfl_container_adopt_variant(variant) != 0) {
+        if (variant_created) {
+            cfl_variant_destroy(variant);
+        }
+
         return -1;
     }
 

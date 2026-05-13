@@ -1238,6 +1238,10 @@ static void null_inputs()
     TEST_CHECK(variant == NULL);
 
     cfl_kvpair_destroy(NULL);
+
+    variant = cfl_kvpair_take_value(NULL);
+    TEST_CHECK(variant == NULL);
+
     cfl_kvlist_destroy(list);
 }
 
@@ -1355,7 +1359,7 @@ static void reject_kvlist_cycles()
     TEST_CHECK(ret == -1);
 
     ret = cfl_kvlist_insert_kvlist(child, "parent", list);
-    TEST_CHECK(ret == -1);
+    TEST_CHECK(ret < 0);
 
     cfl_kvlist_destroy(list);
 }
@@ -1378,26 +1382,31 @@ static void reject_variant_cycles()
     cfl_variant_destroy(variant);
 }
 
-static void reject_duplicate_variant()
+static void reject_shared_kvlist_between_parents()
 {
     int ret;
-    struct cfl_kvlist *list;
-    struct cfl_variant *variant;
+    struct cfl_kvlist *list_a;
+    struct cfl_kvlist *list_b;
+    struct cfl_kvlist *child;
 
-    list = cfl_kvlist_create();
-    TEST_CHECK(list != NULL);
+    list_a = cfl_kvlist_create();
+    TEST_CHECK(list_a != NULL);
 
-    variant = cfl_variant_create_from_string("value");
-    TEST_CHECK(variant != NULL);
+    list_b = cfl_kvlist_create();
+    TEST_CHECK(list_b != NULL);
 
-    ret = cfl_kvlist_insert(list, "one", variant);
+    child = cfl_kvlist_create();
+    TEST_CHECK(child != NULL);
+
+    ret = cfl_kvlist_insert_kvlist(list_a, "child", child);
     TEST_CHECK(ret == 0);
 
-    ret = cfl_kvlist_insert(list, "two", variant);
+    ret = cfl_kvlist_insert_kvlist(list_b, "child", child);
     TEST_CHECK(ret == -1);
-    TEST_CHECK(cfl_kvlist_count(list) == 1);
+    TEST_CHECK(cfl_kvlist_count(list_b) == 0);
 
-    cfl_kvlist_destroy(list);
+    cfl_kvlist_destroy(list_b);
+    cfl_kvlist_destroy(list_a);
 }
 
 static void reject_array_cycles()
@@ -1416,9 +1425,88 @@ static void reject_array_cycles()
     TEST_CHECK(ret == 0);
 
     ret = cfl_array_append_kvlist(array, list);
-    TEST_CHECK(ret == -1);
+    TEST_CHECK(ret < 0);
 
     cfl_kvlist_destroy(list);
+}
+
+static void move_taken_value_between_kvlists()
+{
+    int ret;
+    struct cfl_list *head;
+    struct cfl_kvlist *source;
+    struct cfl_kvlist *destination;
+    struct cfl_kvpair *pair;
+    struct cfl_variant *value;
+    struct cfl_variant *moved;
+
+    source = cfl_kvlist_create();
+    TEST_CHECK(source != NULL);
+
+    destination = cfl_kvlist_create();
+    TEST_CHECK(destination != NULL);
+
+    ret = cfl_kvlist_insert_string(source, "source", "value");
+    TEST_CHECK(ret == 0);
+
+    head = source->list.next;
+    pair = cfl_list_entry(head, struct cfl_kvpair, _head);
+    value = cfl_kvpair_take_value(pair);
+    TEST_CHECK(value != NULL);
+    TEST_CHECK(pair->val == NULL);
+
+    cfl_kvpair_destroy(pair);
+    TEST_CHECK(cfl_kvlist_count(source) == 0);
+
+    ret = cfl_kvlist_insert(destination, "destination", value);
+    TEST_CHECK(ret == 0);
+
+    moved = cfl_kvlist_fetch(destination, "destination");
+    TEST_CHECK(moved == value);
+    TEST_CHECK(moved->type == CFL_VARIANT_STRING);
+    TEST_CHECK(strcmp(moved->data.as_string, "value") == 0);
+
+    cfl_kvlist_destroy(source);
+    cfl_kvlist_destroy(destination);
+}
+
+static void insert_then_detach_move_compatibility()
+{
+    int ret;
+    struct cfl_list *head;
+    struct cfl_kvlist *source;
+    struct cfl_kvlist *destination;
+    struct cfl_kvpair *pair;
+    struct cfl_variant *value;
+    struct cfl_variant *moved;
+
+    source = cfl_kvlist_create();
+    TEST_CHECK(source != NULL);
+
+    destination = cfl_kvlist_create();
+    TEST_CHECK(destination != NULL);
+
+    ret = cfl_kvlist_insert_string(source, "source", "value");
+    TEST_CHECK(ret == 0);
+
+    head = source->list.next;
+    pair = cfl_list_entry(head, struct cfl_kvpair, _head);
+    value = pair->val;
+
+    ret = cfl_kvlist_insert(destination, "destination", value);
+    TEST_CHECK(ret == 0);
+
+    pair->val = NULL;
+    cfl_kvpair_destroy(pair);
+    TEST_CHECK(cfl_kvlist_count(source) == 0);
+
+    moved = cfl_kvlist_fetch(destination, "destination");
+    TEST_CHECK(moved == value);
+    TEST_CHECK(moved->type == CFL_VARIANT_STRING);
+    TEST_CHECK(strcmp(moved->data.as_string, "value") == 0);
+
+    cfl_kvlist_destroy(source);
+    cfl_kvlist_destroy(destination);
 }
 
 TEST_LIST = {
@@ -1454,7 +1542,9 @@ TEST_LIST = {
     {"print_write_error", print_write_error},
     {"reject_kvlist_cycles", reject_kvlist_cycles},
     {"reject_variant_cycles", reject_variant_cycles},
-    {"reject_duplicate_variant", reject_duplicate_variant},
+    {"reject_shared_kvlist_between_parents", reject_shared_kvlist_between_parents},
     {"reject_array_cycles", reject_array_cycles},
+    {"move_taken_value_between_kvlists", move_taken_value_between_kvlists},
+    {"insert_then_detach_move_compatibility", insert_then_detach_move_compatibility},
     { 0 }
 };

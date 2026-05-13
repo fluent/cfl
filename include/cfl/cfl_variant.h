@@ -56,6 +56,7 @@ struct cfl_variant {
      * a copy of the original data.
      */
     uint8_t referenced;
+    uint8_t owned;
 
     /* the data */
     union {

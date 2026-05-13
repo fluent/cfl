@@ -58,6 +58,9 @@ struct cfl_array *cfl_array_create(size_t slot_count)
 
     array->entry_count = 0;
     array->slot_count = slot_count;
+    array->owner = NULL;
+    array->parent_array = NULL;
+    array->parent_kvlist = NULL;
 
     return array;
 }
@@ -152,27 +155,6 @@ int cfl_array_append(struct cfl_array *array,
         return -1;
     }
 
-    if (cfl_container_array_contains_variant(array, value)) {
-        return -1;
-    }
-
-    /* Only container-valued variants can participate in container cycles. */
-    if (value->type == CFL_VARIANT_ARRAY || value->type == CFL_VARIANT_KVLIST) {
-        if (cfl_container_variant_contains_array(value, array)) {
-            return -1;
-        }
-
-        if (value->type == CFL_VARIANT_ARRAY &&
-            cfl_container_array_contains_array(array, value->data.as_array)) {
-            return -1;
-        }
-
-        if (value->type == CFL_VARIANT_KVLIST &&
-            cfl_container_array_contains_kvlist(array, value->data.as_kvlist)) {
-            return -1;
-        }
-    }
-
     if (array->entry_count >= array->slot_count) {
         /*
          * if there is no more space but the caller allowed to resize
@@ -213,6 +195,10 @@ int cfl_array_append(struct cfl_array *array,
 
     /* this is just a double check to make sure the slot is really available */
     if (array->entry_count >= array->slot_count) {
+        return -1;
+    }
+
+    if (cfl_container_move_variant_to_array(array, value) != 0) {
         return -1;
     }
 
@@ -420,8 +406,7 @@ int cfl_array_append_array(struct cfl_array *array, struct cfl_array *value)
         return -1;
     }
 
-    if (cfl_container_array_contains_array(array, value) ||
-        cfl_container_array_contains_array(value, array)) {
+    if (array == value) {
         return -1;
     }
 
@@ -433,6 +418,8 @@ int cfl_array_append_array(struct cfl_array *array, struct cfl_array *value)
 
     result = cfl_array_append(array, value_instance);
     if (result) {
+        cfl_container_release_variant(value_instance);
+        value_instance->data.as_array = NULL;
         cfl_variant_destroy(value_instance);
         return -2;
     }
@@ -457,7 +444,7 @@ int cfl_array_append_new_array(struct cfl_array *array, size_t size)
     }
 
     result = cfl_array_append_array(array, value);
-    if (result == -1) {
+    if (result < 0) {
         cfl_array_destroy(value);
     }
 
@@ -473,11 +460,6 @@ int cfl_array_append_kvlist(struct cfl_array *array, struct cfl_kvlist *value)
         return -1;
     }
 
-    if (cfl_container_array_contains_kvlist(array, value) ||
-        cfl_container_kvlist_contains_array(value, array)) {
-        return -1;
-    }
-
     value_instance = cfl_variant_create_from_kvlist(value);
     if (value_instance == NULL) {
         return -1;
@@ -485,6 +467,8 @@ int cfl_array_append_kvlist(struct cfl_array *array, struct cfl_kvlist *value)
     result = cfl_array_append(array, value_instance);
 
     if (result) {
+        cfl_container_release_variant(value_instance);
+        value_instance->data.as_kvlist = NULL;
         cfl_variant_destroy(value_instance);
 
         return -2;

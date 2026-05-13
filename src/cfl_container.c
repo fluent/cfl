@@ -323,3 +323,271 @@ int cfl_container_variant_contains_variant(struct cfl_variant *variant,
 {
     return variant_contains_variant(variant, target, 0);
 }
+
+static int parent_chain_contains_array(struct cfl_array *array,
+                                       struct cfl_kvlist *kvlist,
+                                       struct cfl_array *target)
+{
+    struct cfl_array *next_array;
+    struct cfl_kvlist *next_kvlist;
+    size_t depth;
+
+    depth = 0;
+
+    while (array != NULL || kvlist != NULL) {
+        if (depth_exceeded(depth)) {
+            return CFL_TRUE;
+        }
+
+        next_array = NULL;
+        next_kvlist = NULL;
+
+        if (array != NULL) {
+            if (array == target) {
+                return CFL_TRUE;
+            }
+
+            next_array = array->parent_array;
+            next_kvlist = array->parent_kvlist;
+        }
+        else {
+            next_array = kvlist->parent_array;
+            next_kvlist = kvlist->parent_kvlist;
+        }
+
+        array = next_array;
+        kvlist = next_kvlist;
+        depth++;
+    }
+
+    return CFL_FALSE;
+}
+
+static int parent_chain_contains_kvlist(struct cfl_array *array,
+                                        struct cfl_kvlist *kvlist,
+                                        struct cfl_kvlist *target)
+{
+    struct cfl_array *next_array;
+    struct cfl_kvlist *next_kvlist;
+    size_t depth;
+
+    depth = 0;
+
+    while (array != NULL || kvlist != NULL) {
+        if (depth_exceeded(depth)) {
+            return CFL_TRUE;
+        }
+
+        next_array = NULL;
+        next_kvlist = NULL;
+
+        if (kvlist != NULL) {
+            if (kvlist == target) {
+                return CFL_TRUE;
+            }
+
+            next_array = kvlist->parent_array;
+            next_kvlist = kvlist->parent_kvlist;
+        }
+        else {
+            next_array = array->parent_array;
+            next_kvlist = array->parent_kvlist;
+        }
+
+        array = next_array;
+        kvlist = next_kvlist;
+        depth++;
+    }
+
+    return CFL_FALSE;
+}
+
+static int claim_variant_container(struct cfl_variant *variant)
+{
+    if (variant->type == CFL_VARIANT_ARRAY) {
+        if (variant->data.as_array != NULL &&
+            cfl_container_claim_array(variant->data.as_array, variant) != 0) {
+            return -1;
+        }
+    }
+
+    if (variant->type == CFL_VARIANT_KVLIST) {
+        if (variant->data.as_kvlist != NULL &&
+            cfl_container_claim_kvlist(variant->data.as_kvlist, variant) != 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int cfl_container_claim_array(struct cfl_array *array,
+                              struct cfl_variant *owner)
+{
+    if (array == NULL || owner == NULL) {
+        return -1;
+    }
+
+    if (array->owner != NULL && array->owner != owner) {
+        return -1;
+    }
+
+    array->owner = owner;
+
+    return 0;
+}
+
+int cfl_container_claim_kvlist(struct cfl_kvlist *kvlist,
+                               struct cfl_variant *owner)
+{
+    if (kvlist == NULL || owner == NULL) {
+        return -1;
+    }
+
+    if (kvlist->owner != NULL && kvlist->owner != owner) {
+        return -1;
+    }
+
+    kvlist->owner = owner;
+
+    return 0;
+}
+
+int cfl_container_adopt_variant(struct cfl_variant *variant)
+{
+    if (variant == NULL) {
+        return -1;
+    }
+
+    if (variant->owned) {
+        return -1;
+    }
+
+    if (claim_variant_container(variant) != 0) {
+        return -1;
+    }
+
+    variant->owned = CFL_TRUE;
+
+    return 0;
+}
+
+int cfl_container_move_variant_to_array(struct cfl_array *array,
+                                        struct cfl_variant *variant)
+{
+    struct cfl_array *child_array;
+    struct cfl_kvlist *child_kvlist;
+
+    if (array == NULL || variant == NULL) {
+        return -1;
+    }
+
+    if (variant->type == CFL_VARIANT_ARRAY) {
+        child_array = variant->data.as_array;
+
+        if (child_array != NULL &&
+            parent_chain_contains_array(array, NULL, child_array)) {
+            return -1;
+        }
+    }
+    else if (variant->type == CFL_VARIANT_KVLIST) {
+        child_kvlist = variant->data.as_kvlist;
+
+        if (child_kvlist != NULL &&
+            parent_chain_contains_kvlist(array, NULL, child_kvlist)) {
+            return -1;
+        }
+    }
+
+    if (claim_variant_container(variant) != 0) {
+        return -1;
+    }
+
+    if (variant->type == CFL_VARIANT_ARRAY &&
+        variant->data.as_array != NULL) {
+        variant->data.as_array->parent_array = array;
+        variant->data.as_array->parent_kvlist = NULL;
+    }
+    else if (variant->type == CFL_VARIANT_KVLIST &&
+             variant->data.as_kvlist != NULL) {
+        variant->data.as_kvlist->parent_array = array;
+        variant->data.as_kvlist->parent_kvlist = NULL;
+    }
+
+    variant->owned = CFL_TRUE;
+
+    return 0;
+}
+
+int cfl_container_move_variant_to_kvlist(struct cfl_kvlist *kvlist,
+                                         struct cfl_variant *variant)
+{
+    struct cfl_array *child_array;
+    struct cfl_kvlist *child_kvlist;
+
+    if (kvlist == NULL || variant == NULL) {
+        return -1;
+    }
+
+    if (variant->type == CFL_VARIANT_ARRAY) {
+        child_array = variant->data.as_array;
+
+        if (child_array != NULL &&
+            parent_chain_contains_array(NULL, kvlist, child_array)) {
+            return -1;
+        }
+    }
+    else if (variant->type == CFL_VARIANT_KVLIST) {
+        child_kvlist = variant->data.as_kvlist;
+
+        if (child_kvlist != NULL &&
+            parent_chain_contains_kvlist(NULL, kvlist, child_kvlist)) {
+            return -1;
+        }
+    }
+
+    if (claim_variant_container(variant) != 0) {
+        return -1;
+    }
+
+    if (variant->type == CFL_VARIANT_ARRAY &&
+        variant->data.as_array != NULL) {
+        variant->data.as_array->parent_array = NULL;
+        variant->data.as_array->parent_kvlist = kvlist;
+    }
+    else if (variant->type == CFL_VARIANT_KVLIST &&
+             variant->data.as_kvlist != NULL) {
+        variant->data.as_kvlist->parent_array = NULL;
+        variant->data.as_kvlist->parent_kvlist = kvlist;
+    }
+
+    variant->owned = CFL_TRUE;
+
+    return 0;
+}
+
+void cfl_container_release_variant(struct cfl_variant *variant)
+{
+    if (variant == NULL) {
+        return;
+    }
+
+    variant->owned = CFL_FALSE;
+
+    if (variant->type == CFL_VARIANT_ARRAY) {
+        if (variant->data.as_array != NULL &&
+            variant->data.as_array->owner == variant) {
+            variant->data.as_array->owner = NULL;
+            variant->data.as_array->parent_array = NULL;
+            variant->data.as_array->parent_kvlist = NULL;
+        }
+    }
+    else if (variant->type == CFL_VARIANT_KVLIST) {
+        if (variant->data.as_kvlist != NULL &&
+            variant->data.as_kvlist->owner == variant) {
+            variant->data.as_kvlist->owner = NULL;
+            variant->data.as_kvlist->parent_array = NULL;
+            variant->data.as_kvlist->parent_kvlist = NULL;
+        }
+    }
+}

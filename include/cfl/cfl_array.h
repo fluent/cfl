@@ -33,6 +33,9 @@ struct cfl_array {
     struct cfl_variant **entries;
     size_t               slot_count;
     size_t               entry_count;
+    struct cfl_variant  *owner;
+    struct cfl_array    *parent_array;
+    struct cfl_kvlist   *parent_kvlist;
 };
 
 struct cfl_array *cfl_array_create(size_t slot_count);
@@ -62,9 +65,10 @@ static inline size_t cfl_array_size(struct cfl_array *array)
 }
 
 /*
- * Append APIs take ownership of the value on success. A variant, array, or
- * kvlist must have a single owning parent; inserting the same pointer into
- * multiple containers is unsupported and can result in double-free.
+ * Append APIs take ownership of the value on success. A raw array or kvlist
+ * must have one owning variant at a time. To move an existing kvpair value,
+ * detach it with cfl_kvpair_take_value() before reinserting it. Do not leave
+ * the same variant pointer attached to multiple live containers.
  */
 int cfl_array_append(struct cfl_array *array, struct cfl_variant *value);
 int cfl_array_append_string(struct cfl_array *array, char *value);
