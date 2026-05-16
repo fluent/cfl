@@ -80,7 +80,7 @@ set(src
 
 # Static Library
 add_library(cfl-static STATIC ${src})
-target_link_libraries(cfl-static PRIVATE xxhash)
+target_link_libraries(cfl-static PUBLIC xxhash)
 
 if(CFL_ATOMIC_NEEDS_LIBATOMIC)
   target_link_libraries(cfl-static PUBLIC atomic)
