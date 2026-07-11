@@ -174,7 +174,7 @@ int cfl_array_remove_by_reference(struct cfl_array *array,
         }
     }
 
-    return 0;
+    return -1;
 }
 
 int cfl_array_append(struct cfl_array *array,
