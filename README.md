@@ -109,6 +109,8 @@ specific module headers they require.
 
 ## Documentation
 
+- Release history: see [CHANGELOG.md](CHANGELOG.md) for notable changes in each
+  version.
 - Public API: the self-contained headers under [`include/cfl/`](include/cfl/)
   describe each supported interface.
 - Building and embedding: see the build and CMake examples above.
