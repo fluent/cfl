@@ -10,6 +10,7 @@ set(src
   cfl_object.c
   cfl_array.c
   cfl_variant.c
+  cfl_arena.c
   cfl_container.c
   cfl_checksum.c
   cfl_utils.c
