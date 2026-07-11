@@ -72,6 +72,17 @@ static void test_sds_printf()
     TEST_CHECK(tmp == s);
     TEST_CHECK(cfl_sds_len(s) == len);
     cfl_sds_destroy(s);
+
+    s = cfl_sds_create("prefix");
+    TEST_CHECK(s != NULL);
+
+    tmp = cfl_sds_printf(&s, "-%s", str);
+    TEST_CHECK(tmp == s);
+    TEST_CHECK(cfl_sds_len(s) == strlen("prefix-") + strlen(str));
+    TEST_CHECK(strncmp(s, "prefix-", strlen("prefix-")) == 0);
+    TEST_CHECK(strcmp(s + strlen("prefix-"), str) == 0);
+
+    cfl_sds_destroy(s);
 }
 
 static void test_sds_invalid_inputs()
