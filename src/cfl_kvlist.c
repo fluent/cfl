@@ -21,6 +21,7 @@
 #include <cfl/cfl_kvlist.h>
 #include <cfl/cfl_array.h>
 #include <cfl/cfl_variant.h>
+#include "cfl_arena_internal.h"
 #include <cfl/cfl_compat.h>
 
 #include <limits.h>
@@ -86,9 +87,19 @@ static int print_json_string(FILE *fp, const char *str, size_t len)
 
 struct cfl_kvlist *cfl_kvlist_create()
 {
+    return cfl_kvlist_create_in(NULL);
+}
+
+struct cfl_kvlist *cfl_kvlist_create_in(struct cfl_arena *arena)
+{
     struct cfl_kvlist *list;
 
-    list = malloc(sizeof(struct cfl_kvlist));
+    if (arena == NULL) {
+        list = malloc(sizeof(struct cfl_kvlist));
+    }
+    else {
+        list = cfl_arena_alloc(arena, sizeof(struct cfl_kvlist));
+    }
     if (list == NULL) {
         cfl_report_runtime_error();
         return NULL;
@@ -98,8 +109,18 @@ struct cfl_kvlist *cfl_kvlist_create()
     list->owner = NULL;
     list->parent_array = NULL;
     list->parent_kvlist = NULL;
+    list->arena = arena;
 
     return list;
+}
+
+struct cfl_kvlist *cfl_kvlist_create_like(struct cfl_kvlist *parent)
+{
+    if (parent == NULL) {
+        return NULL;
+    }
+
+    return cfl_kvlist_create_in(parent->arena);
 }
 
 void cfl_kvlist_destroy(struct cfl_kvlist *list)
@@ -123,10 +144,18 @@ void cfl_kvlist_destroy(struct cfl_kvlist *list)
             cfl_variant_destroy(pair->val);
         }
         cfl_list_del(&pair->_head);
-        free(pair);
+        if (pair->arena == NULL) {
+            free(pair);
+        }
+        else {
+            cfl_arena_free_kvpair(pair->arena, pair,
+                                          sizeof(struct cfl_kvpair));
+        }
     }
 
-    free(list);
+    if (list->arena == NULL) {
+        free(list);
+    }
 }
 
 int cfl_kvlist_insert_string_s(struct cfl_kvlist *list,
@@ -141,7 +170,8 @@ int cfl_kvlist_insert_string_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_string_s(value, value_size, referenced);
+    value_instance = cfl_variant_create_from_string_s_in(list->arena, value,
+                                                          value_size, referenced);
     if (value_instance == NULL) {
         return -1;
     }
@@ -168,7 +198,8 @@ int cfl_kvlist_insert_bytes_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_bytes(value, length, referenced);
+    value_instance = cfl_variant_create_from_bytes_in(list->arena, value,
+                                                       length, referenced);
     if (value_instance == NULL) {
         return -1;
     }
@@ -193,7 +224,7 @@ int cfl_kvlist_insert_reference_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_reference(value);
+    value_instance = cfl_variant_create_from_reference_in(list->arena, value);
 
     if (value_instance == NULL) {
         return -1;
@@ -220,7 +251,7 @@ int cfl_kvlist_insert_bool_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_bool(value);
+    value_instance = cfl_variant_create_from_bool_in(list->arena, value);
 
     if (value_instance == NULL) {
         return -1;
@@ -247,7 +278,7 @@ int cfl_kvlist_insert_int64_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_int64(value);
+    value_instance = cfl_variant_create_from_int64_in(list->arena, value);
 
     if (value_instance == NULL) {
         return -1;
@@ -274,7 +305,7 @@ int cfl_kvlist_insert_uint64_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_uint64(value);
+    value_instance = cfl_variant_create_from_uint64_in(list->arena, value);
 
     if (value_instance == NULL) {
         return -1;
@@ -301,7 +332,7 @@ int cfl_kvlist_insert_double_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_double(value);
+    value_instance = cfl_variant_create_from_double_in(list->arena, value);
 
     if (value_instance == NULL) {
         return -1;
@@ -328,7 +359,7 @@ int cfl_kvlist_insert_array_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_array(value);
+    value_instance = cfl_variant_create_from_array_in(list->arena, value);
 
     if (value_instance == NULL) {
         return -1;
@@ -358,7 +389,7 @@ int cfl_kvlist_insert_new_array_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value = cfl_array_create(size);
+    value = cfl_array_create_in(list->arena, size);
 
     if (value == NULL) {
         return -1;
@@ -386,7 +417,7 @@ int cfl_kvlist_insert_kvlist_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    value_instance = cfl_variant_create_from_kvlist(value);
+    value_instance = cfl_variant_create_from_kvlist_in(list->arena, value);
     if (value_instance == NULL) {
         return -1;
     }
@@ -414,27 +445,50 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
         return -1;
     }
 
-    pair = malloc(sizeof(struct cfl_kvpair));
+    if (list->arena != value->arena) {
+        return -1;
+    }
+
+    if (list->arena == NULL) {
+        pair = malloc(sizeof(struct cfl_kvpair));
+    }
+    else {
+        pair = cfl_arena_alloc_kvpair(list->arena,
+                                              sizeof(struct cfl_kvpair));
+    }
     if (pair == NULL) {
         cfl_report_runtime_error();
         return -1;
     }
 
-    pair->key = cfl_sds_create_len(key, (int) key_size);
+    pair->key = cfl_sds_create_len_in(list->arena, key, (int) key_size);
     if (pair->key == NULL) {
-        free(pair);
+        if (list->arena == NULL) {
+            free(pair);
+        }
+        else {
+            cfl_arena_free_kvpair(list->arena, pair,
+                                          sizeof(struct cfl_kvpair));
+        }
 
         return -2;
     }
 
     if (cfl_container_move_variant_to_kvlist(list, value) != 0) {
         cfl_sds_destroy(pair->key);
-        free(pair);
+        if (list->arena == NULL) {
+            free(pair);
+        }
+        else {
+            cfl_arena_free_kvpair(list->arena, pair,
+                                          sizeof(struct cfl_kvpair));
+        }
 
         return -1;
     }
 
     pair->val = value;
+    pair->arena = list->arena;
 
     cfl_list_add(&pair->_head, &list->list);
     return 0;
@@ -739,7 +793,13 @@ void cfl_kvpair_destroy(struct cfl_kvpair *pair)
             cfl_variant_destroy(pair->val);
         }
 
-        free(pair);
+        if (pair->arena == NULL) {
+            free(pair);
+        }
+        else {
+            cfl_arena_free_kvpair(pair->arena, pair,
+                                          sizeof(struct cfl_kvpair));
+        }
     }
 }
 
@@ -757,4 +817,58 @@ struct cfl_variant *cfl_kvpair_take_value(struct cfl_kvpair *pair)
     cfl_container_release_variant(value);
 
     return value;
+}
+
+int cfl_kvpair_key_set_s(struct cfl_kvpair *pair,
+                         char *key, size_t key_size)
+{
+    cfl_sds_t replacement;
+
+    if (pair == NULL || key == NULL || key_size > INT_MAX) {
+        return -1;
+    }
+
+    replacement = cfl_sds_create_len_in(pair->arena, key, (int) key_size);
+    if (replacement == NULL) {
+        return -1;
+    }
+
+    cfl_sds_destroy(pair->key);
+    pair->key = replacement;
+    return 0;
+}
+
+int cfl_kvlist_rename_s(struct cfl_kvlist *list,
+                        char *old_key, size_t old_key_size,
+                        char *new_key, size_t new_key_size)
+{
+    struct cfl_list *head;
+    struct cfl_kvpair *pair;
+    struct cfl_kvpair *source;
+
+    if (list == NULL || old_key == NULL || new_key == NULL ||
+        old_key_size > INT_MAX || new_key_size > INT_MAX) {
+        return -1;
+    }
+
+    source = NULL;
+    cfl_list_foreach(head, &list->list) {
+        pair = cfl_list_entry(head, struct cfl_kvpair, _head);
+        if (cfl_sds_len(pair->key) == old_key_size &&
+            memcmp(pair->key, old_key, old_key_size) == 0) {
+            source = pair;
+        }
+        if (cfl_sds_len(pair->key) == new_key_size &&
+            memcmp(pair->key, new_key, new_key_size) == 0 &&
+            !(old_key_size == new_key_size &&
+              memcmp(old_key, new_key, old_key_size) == 0)) {
+            return -1;
+        }
+    }
+
+    if (source == NULL) {
+        return -1;
+    }
+
+    return cfl_kvpair_key_set_s(source, new_key, new_key_size);
 }
