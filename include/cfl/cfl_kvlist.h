@@ -31,6 +31,11 @@
 struct cfl_array;
 struct cfl_arena;
 
+enum cfl_kvlist_match_mode {
+    CFL_KVLIST_MATCH_CASE_INSENSITIVE = 0,
+    CFL_KVLIST_MATCH_CASE_SENSITIVE
+};
+
 struct cfl_kvpair {
     cfl_sds_t            key;    /* Key */
     struct cfl_variant   *val;   /* Value */
@@ -143,11 +148,24 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
                         char *key, size_t key_size,
                         struct cfl_variant *value);
 
-struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_t key_size);
-struct cfl_variant *cfl_kvlist_fetch_case_s(struct cfl_kvlist *list, char *key, size_t key_size);
+struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list,
+                                       char *key, size_t key_size);
+/* The existing fetch, contains, and remove APIs match case-insensitively. */
+struct cfl_variant *cfl_kvlist_fetch_ex(struct cfl_kvlist *list,
+                                        char *key,
+                                        enum cfl_kvlist_match_mode mode);
+struct cfl_variant *cfl_kvlist_fetch_s_ex(struct cfl_kvlist *list,
+                                          char *key, size_t key_size,
+                                          enum cfl_kvlist_match_mode mode);
+struct cfl_variant *cfl_kvlist_fetch_case_s(struct cfl_kvlist *list,
+                                            char *key, size_t key_size);
 
 int cfl_kvlist_contains(struct cfl_kvlist *kvlist, char *name);
+int cfl_kvlist_contains_ex(struct cfl_kvlist *kvlist, char *name,
+                           enum cfl_kvlist_match_mode mode);
 int cfl_kvlist_remove(struct cfl_kvlist *kvlist, char *name);
+int cfl_kvlist_remove_ex(struct cfl_kvlist *kvlist, char *name,
+                         enum cfl_kvlist_match_mode mode);
 void cfl_kvpair_destroy(struct cfl_kvpair *pair);
 struct cfl_variant *cfl_kvpair_take_value(struct cfl_kvpair *pair);
 int cfl_kvpair_key_set_s(struct cfl_kvpair *pair,
