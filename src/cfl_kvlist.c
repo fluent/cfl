@@ -24,6 +24,7 @@
 #include "cfl_arena_internal.h"
 #include <cfl/cfl_compat.h>
 
+#include <ctype.h>
 #include <limits.h>
 
 #include <cfl/cfl_container.h>
@@ -494,7 +495,36 @@ int cfl_kvlist_insert_s(struct cfl_kvlist *list,
     return 0;
 }
 
-struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_t key_size)
+static int key_matches(cfl_sds_t candidate, char *key, size_t key_size,
+                       enum cfl_kvlist_match_mode mode)
+{
+    size_t index;
+
+    if (cfl_sds_len(candidate) != key_size) {
+        return CFL_FALSE;
+    }
+
+    if (mode == CFL_KVLIST_MATCH_CASE_SENSITIVE) {
+        return memcmp(candidate, key, key_size) == 0;
+    }
+
+    if (mode == CFL_KVLIST_MATCH_CASE_INSENSITIVE) {
+        for (index = 0; index < key_size; index++) {
+            if (tolower((unsigned char) candidate[index]) !=
+                tolower((unsigned char) key[index])) {
+                return CFL_FALSE;
+            }
+        }
+
+        return CFL_TRUE;
+    }
+
+    return CFL_FALSE;
+}
+
+struct cfl_variant *cfl_kvlist_fetch_s_ex(
+    struct cfl_kvlist *list, char *key, size_t key_size,
+    enum cfl_kvlist_match_mode mode)
 {
     struct cfl_list *head;
     struct cfl_kvpair *pair;
@@ -506,11 +536,7 @@ struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_
     cfl_list_foreach(head, &list->list) {
         pair = cfl_list_entry(head, struct cfl_kvpair, _head);
 
-        if (cfl_sds_len(pair->key) != key_size) {
-            continue;
-        }
-
-        if (strncasecmp(pair->key, key, key_size) == 0) {
+        if (key_matches(pair->key, key, key_size, mode) == CFL_TRUE) {
             return pair->val;
         }
     }
@@ -518,6 +544,19 @@ struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list, char *key, size_
     return NULL;
 }
 
+struct cfl_variant *cfl_kvlist_fetch_s(struct cfl_kvlist *list,
+                                       char *key, size_t key_size)
+{
+    return cfl_kvlist_fetch_s_ex(list, key, key_size,
+                                 CFL_KVLIST_MATCH_CASE_INSENSITIVE);
+}
+
+struct cfl_variant *cfl_kvlist_fetch_case_s(struct cfl_kvlist *list,
+                                            char *key, size_t key_size)
+{
+    return cfl_kvlist_fetch_s_ex(list, key, key_size,
+                                 CFL_KVLIST_MATCH_CASE_SENSITIVE);
+}
 
 int cfl_kvlist_insert_string(struct cfl_kvlist *list,
                              char *key, char *value)
@@ -641,11 +680,19 @@ int cfl_kvlist_insert(struct cfl_kvlist *list,
 
 struct cfl_variant *cfl_kvlist_fetch(struct cfl_kvlist *list, char *key)
 {
-    if (!list || !key) {
+    return cfl_kvlist_fetch_ex(list, key,
+                               CFL_KVLIST_MATCH_CASE_INSENSITIVE);
+}
+
+struct cfl_variant *cfl_kvlist_fetch_ex(
+    struct cfl_kvlist *list, char *key,
+    enum cfl_kvlist_match_mode mode)
+{
+    if (list == NULL || key == NULL) {
         return NULL;
     }
 
-    return cfl_kvlist_fetch_s(list, key, strlen(key));
+    return cfl_kvlist_fetch_s_ex(list, key, strlen(key), mode);
 }
 
 int cfl_kvlist_count(struct cfl_kvlist *list)
@@ -714,10 +761,16 @@ int cfl_kvlist_print(FILE *fp, struct cfl_kvlist *list)
 
 int cfl_kvlist_contains(struct cfl_kvlist *kvlist, char *name)
 {
+    return cfl_kvlist_contains_ex(kvlist, name,
+                                  CFL_KVLIST_MATCH_CASE_INSENSITIVE);
+}
+
+int cfl_kvlist_contains_ex(struct cfl_kvlist *kvlist, char *name,
+                           enum cfl_kvlist_match_mode mode)
+{
     struct cfl_list   *iterator;
     struct cfl_kvpair *pair;
     size_t             name_len;
-    size_t             key_len;
 
     if (kvlist == NULL || name == NULL) {
         return CFL_FALSE;
@@ -729,12 +782,7 @@ int cfl_kvlist_contains(struct cfl_kvlist *kvlist, char *name)
         pair = cfl_list_entry(iterator,
                               struct cfl_kvpair, _head);
 
-        key_len = cfl_sds_len(pair->key);
-        if (key_len != name_len) {
-            continue;
-        }
-
-        if (strncasecmp(pair->key, name, name_len) == 0) {
+        if (key_matches(pair->key, name, name_len, mode) == CFL_TRUE) {
             return CFL_TRUE;
         }
     }
@@ -745,11 +793,17 @@ int cfl_kvlist_contains(struct cfl_kvlist *kvlist, char *name)
 
 int cfl_kvlist_remove(struct cfl_kvlist *kvlist, char *name)
 {
+    return cfl_kvlist_remove_ex(kvlist, name,
+                                CFL_KVLIST_MATCH_CASE_INSENSITIVE);
+}
+
+int cfl_kvlist_remove_ex(struct cfl_kvlist *kvlist, char *name,
+                         enum cfl_kvlist_match_mode mode)
+{
     struct cfl_list   *iterator_backup;
     struct cfl_list   *iterator;
     struct cfl_kvpair *pair;
     size_t             name_len;
-    size_t             key_len;
     int                removed;
 
     if (kvlist == NULL || name == NULL) {
@@ -763,12 +817,7 @@ int cfl_kvlist_remove(struct cfl_kvlist *kvlist, char *name)
         pair = cfl_list_entry(iterator,
                               struct cfl_kvpair, _head);
 
-        key_len = cfl_sds_len(pair->key);
-        if (key_len != name_len) {
-            continue;
-        }
-
-        if (strncasecmp(pair->key, name, name_len) == 0) {
+        if (key_matches(pair->key, name, name_len, mode) == CFL_TRUE) {
             cfl_kvpair_destroy(pair);
             removed = CFL_TRUE;
         }
