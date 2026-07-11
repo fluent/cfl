@@ -5,6 +5,8 @@ CFL is a compact C library of data structures and low-level utilities used by
 provides dynamic strings, intrusive lists, typed variants, arrays, key/value
 containers, hashing, checksums, atomics, and an optional arena allocator.
 
+CFL started as a C library for Fluent Bit, a.k.a. `C:\Floppy`.
+
 The library is designed to be embedded. Callers can include the complete public
 interface with:
 
@@ -125,6 +127,3 @@ CFL is distributed under the
 
 Copyright is assigned to the CFL Authors. The contributor list is available on
 [GitHub](https://github.com/fluent/cfl/graphs/contributors).
-
-The name CFL has no required expansion. Historically, “C floppy” has been used
-as an intentionally playful interpretation.
