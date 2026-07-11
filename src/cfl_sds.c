@@ -416,12 +416,20 @@ cfl_sds_t cfl_sds_printf(cfl_sds_t *sds, const char *fmt, ...)
         va_end(ap);
 
         if (size < 0) {
+            s[base_len] = '\0';
             return NULL;
         }
 
         if ((size_t) size <= avail) {
             break;
         }
+
+        /*
+         * vsnprintf() writes a truncated result when the available space is
+         * insufficient. Restore the original SDS terminator before growing
+         * so an allocation failure leaves the input unchanged.
+         */
+        s[base_len] = '\0';
 
         growth = (size_t) size - avail;
         tmp = cfl_sds_increase(s, growth);
