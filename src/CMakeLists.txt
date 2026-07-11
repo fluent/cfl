@@ -81,6 +81,10 @@ set(src
 
 # Static Library
 add_library(cfl-static STATIC ${src})
+set_target_properties(cfl-static PROPERTIES
+  C_STANDARD ${CMAKE_C_STANDARD}
+  C_STANDARD_REQUIRED On
+  C_EXTENSIONS On)
 target_link_libraries(cfl-static PUBLIC xxhash)
 
 if(CFL_ATOMIC_NEEDS_LIBATOMIC)
