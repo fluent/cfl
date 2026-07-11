@@ -41,11 +41,6 @@ if(NOT MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 endif()
 
-# Define __FILENAME__
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__=__FILE__")
-
-
-
 # timespec_get() support
 check_c_source_compiles("
   #include <time.h>
