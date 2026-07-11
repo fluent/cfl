@@ -279,6 +279,26 @@ jobs:
         if: matrix.consumer != 'fluent-bit'
         run: ctest --test-dir build --output-on-failure
 
+  build-installed-consumer:
+    name: Build an installed CFL consumer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Build and install CFL
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$PWD/install"
+          cmake --build build -j2
+          cmake --install build
+      - name: Build and run the external consumer
+        run: |
+          cmake -S tests/installed_consumer -B consumer-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/install"
+          cmake --build consumer-build -j2
+          ./consumer-build/cfl-installed-consumer
+
   build-analysis-tests:
     name: Build with various code analysis tools
     strategy:
@@ -330,6 +350,7 @@ jobs:
       - build-unix-amd64
       - build-c-dialects
       - build-downstream
+      - build-installed-consumer
       - build-analysis-tests
     name: Required checks complete
     runs-on: ubuntu-latest
