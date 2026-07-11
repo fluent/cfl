@@ -208,7 +208,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consumer: [cmetrics, ctraces, fluent-bit]
+        consumer: [cmetrics, cprofiles, ctraces, fluent-bit]
     steps:
       - name: Check out CFL
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -258,6 +258,9 @@ jobs:
           case "${{ matrix.consumer }}" in
               cmetrics)
                   cmake -S consumer -B build -DCMT_TESTS=On
+                  ;;
+              cprofiles)
+                  cmake -S consumer -B build -DCPROF_TESTS=On
                   ;;
               ctraces)
                   cmake -S consumer -B build -DCTR_TESTS=On
