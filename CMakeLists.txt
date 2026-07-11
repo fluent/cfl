@@ -115,6 +115,7 @@ include_directories(
 # xxHash
 if(NOT TARGET xxhash)
   # Do something when target found
+  set(CFL_BUNDLED_XXHASH On)
   set(XXHASH_BUILD_ENABLE_INLINE_API OFF)
   set(XXHASH_BUILD_XXHSUM OFF)
   set(BUILD_SHARED_LIBS OFF)
