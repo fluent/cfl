@@ -18,7 +18,29 @@
  */
 
 #include <cfl/cfl.h>
+#include <stddef.h>
 #include "cfl_tests_internal.h"
+
+static void test_sds_header_compatibility()
+{
+    cfl_sds_t s;
+    struct cfl_sds *head;
+
+    TEST_CHECK(CFL_SDS_HEADER_SIZE == sizeof(uint64_t) * 2);
+    TEST_CHECK(offsetof(struct cfl_sds, buf) == CFL_SDS_HEADER_SIZE);
+
+    s = cfl_sds_create_size(64);
+    TEST_CHECK(s != NULL);
+    if (s == NULL) {
+        return;
+    }
+
+    head = CFL_SDS_HEADER(s);
+    TEST_CHECK(head->len == 0);
+    TEST_CHECK(head->alloc == 64);
+    TEST_CHECK(head->buf == s);
+    cfl_sds_destroy(s);
+}
 
 static void test_sds_usage()
 {
@@ -172,6 +194,7 @@ static void test_sds_in_buffer_slice_boundaries()
 }
 
 TEST_LIST = {
+    { "sds_header_compatibility", test_sds_header_compatibility},
     { "sds_usage" , test_sds_usage},
     { "sds_printf", test_sds_printf},
     { "sds_invalid_inputs", test_sds_invalid_inputs},
