@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [windows-latest, windows-2022]
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build on ${{ matrix.os }} with MSVC
         run: |
           .\scripts\win_build.bat
@@ -36,7 +36,7 @@ jobs:
       matrix:
         os: [windows-latest, windows-2022]
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Get dependencies w/ chocolatey
         uses: crazy-max/ghaction-chocolatey@dfdcf5bba9c0a16358a21c13a06ec5c89024b3ac # v4
         with:
@@ -129,7 +129,7 @@ jobs:
           # Confirm CMake installation
           /usr/local/bin/cmake --version
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run compilation
         run: |
@@ -145,7 +145,7 @@ jobs:
         os: [ubuntu-latest]
         compiler: [ gcc, clang ]
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build on ${{ matrix.os }} with ${{ matrix.compiler }}
         uses: uraimo/run-on-arch-action@f9b26e3a1a408d5fd530d20c17b9f3f4428ff8d9 # v3.1.0
         with:
@@ -173,7 +173,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         compiler: [ gcc, clang ]
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build on ${{ matrix.os }} with ${{ matrix.compiler }}
         run: |
           echo "CC = $CC, CXX = $CXX"
@@ -191,7 +191,7 @@ jobs:
       matrix:
         standard: [99, 17]
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Configure, build, and test
         run: |
           cmake -S . -B build \
@@ -211,11 +211,11 @@ jobs:
         consumer: [cmetrics, cprofiles, ctraces, fluent-bit]
     steps:
       - name: Check out CFL
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: cfl
       - name: Check out ${{ matrix.consumer }}
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: fluent/${{ matrix.consumer }}
           path: consumer
@@ -286,7 +286,7 @@ jobs:
     name: Build an installed CFL consumer
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build and install CFL
         run: |
           cmake -S . -B build \
@@ -318,7 +318,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
 
