@@ -41,7 +41,7 @@ jobs:
         uses: crazy-max/ghaction-chocolatey@dfdcf5bba9c0a16358a21c13a06ec5c89024b3ac # v4
         with:
           args: install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
-      - uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2
         with:
           update: true
           msystem: UCRT64
