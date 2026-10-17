@@ -344,6 +344,7 @@ static void reclaim_large_string_on_remove(void)
     value = cfl_kvlist_fetch(list, "body");
     TEST_CHECK(value != NULL);
     first_buffer = value->data.as_string;
+    TEST_CHECK(((uintptr_t) CFL_SDS_HEADER(first_buffer) % sizeof(void *)) == 0);
     before_remove = cfl_arena_bytes_used(arena);
     reserved_before_remove = cfl_arena_bytes_reserved(arena);
     TEST_CHECK(cfl_kvlist_remove(list, "body") == CFL_TRUE);

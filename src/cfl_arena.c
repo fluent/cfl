@@ -37,6 +37,7 @@ struct cfl_arena_external {
     struct cfl_arena_external *previous;
     size_t size;
     uint8_t allocation_class;
+    union cfl_arena_max_align alignment;
     unsigned char data[];
 };
 
