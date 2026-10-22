@@ -245,8 +245,10 @@ allocation.
 
 Raw allocations and small CFL objects come from arena chunks. Raw requests
 larger than the active chunk receive a dedicated chunk. The large-object
-threshold applies to arena-aware owned SDS values, which use separately tracked
-external storage so unusually large strings do not consume normal chunks.
+threshold applies only to arena-aware owned SDS payloads larger than 1 KiB,
+which can use separately tracked external storage so unusually large strings
+do not consume normal chunks. Payloads up to and including 1 KiB use the pooled
+size classes regardless of the configured threshold.
 
 Reusable external buffers may remain cached after reset. Configure the maximum
 cached capacity with:

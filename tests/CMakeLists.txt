@@ -12,6 +12,7 @@ set(UNIT_TESTS_FILES
   list.c
   variant.c
   arena.c
+  benchmark_records.c
   object.c
   version.c
   utils.c

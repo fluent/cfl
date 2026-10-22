@@ -100,6 +100,7 @@ static int run_batch(struct cfl_arena *arena, struct cfl_variant **roots,
         for (index = 0; index < options->records; index++) {
             if (roots[index] != NULL) {
                 cfl_variant_destroy(roots[index]);
+                roots[index] = NULL;
             }
         }
     }
