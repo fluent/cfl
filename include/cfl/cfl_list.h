@@ -140,7 +140,7 @@ static inline void cfl_list_add_after(struct cfl_list *_new,
     }
 
     next = prev->next;
-    next->prev = prev;
+    next->prev = _new;
     _new->next = next;
     _new->prev = prev;
     prev->next = _new;
