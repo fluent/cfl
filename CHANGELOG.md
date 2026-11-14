@@ -15,6 +15,12 @@ This file records the notable changes in each CFL release.
   at a misaligned offset for large owned SDS strings.
 - Added the `cfl-benchmark-arena-records` benchmark for decoded record
   batches.
+- Added `cfl_checked.h`: overflow-checked `size_t` and `uint64_t` arithmetic,
+  a checked `uint64_t` to `size_t` conversion, a length-aware string
+  comparison, and the `CFL_MUST_USE` result attribute.
+- Added `cfl_cursor.h`: a bounds-checked byte cursor for decoding untrusted
+  binary input, with fixed-width integer readers, borrowed and copied byte
+  ranges, and sub-cursors for nested content.
 
 ## 1.0.0 - 2026-07-11
 

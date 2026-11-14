@@ -19,8 +19,10 @@
 
 #include <cfl/cfl_array.h>
 #include <cfl/cfl_atomic.h>
+#include <cfl/cfl_checked.h>
 #include <cfl/cfl_checksum.h>
 #include <cfl/cfl_compat.h>
+#include <cfl/cfl_cursor.h>
 #include <cfl/cfl_found.h>
 #include <cfl/cfl_hash.h>
 #include <cfl/cfl_info.h>
