@@ -42,6 +42,7 @@
 #include <cfl/cfl_object.h>
 #include <cfl/cfl_utils.h>
 #include <cfl/cfl_checked.h>
+#include <cfl/cfl_cursor.h>
 
 int cfl_init();
 char *cfl_version();

@@ -17,6 +17,7 @@ set(UNIT_TESTS_FILES
   utils.c
   checked.c
   checked_portable.c
+  cursor.c
   )
 
 if(NOT CFL_SYSTEM_WINDOWS)
@@ -31,6 +32,7 @@ set(PUBLIC_HEADERS
   cfl_checksum.h
   cfl_compat.h
   cfl_container.h
+  cfl_cursor.h
   cfl_found.h
   cfl_hash.h
   cfl_info.h
