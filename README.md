@@ -25,6 +25,7 @@ smaller interface.
 - Intrusive lists and lightweight string key/value entries.
 - Portable 64-bit atomics and time helpers.
 - xxHash wrappers and CRC32C checksums.
+- Bounds-checked cursor and overflow-checked arithmetic for decoders.
 - Optional arenas for allocation-heavy, bounded object graphs and arbitrary
   request-lifetime objects.
 - CMake support for embedding, installation, tests, and benchmarks.
@@ -54,6 +55,9 @@ discard complete variant graphs can opt into `cfl_arena`; see
 - `cfl_hash`: xxHash 64-bit and 128-bit wrappers.
 - `cfl_checksum`: CRC32C checksums.
 - `cfl_utils`: string splitting, including quote-aware parsing.
+- `cfl_checked`: overflow-checked size and 64-bit arithmetic, and a
+  length-aware string comparison.
+- `cfl_cursor`: bounds-checked reader for decoding untrusted binary input.
 - `cfl_log`: runtime error-reporting helpers.
 - `cfl_compat`, `cfl_found`, and `cfl_info`: platform and build integration.
 
@@ -118,6 +122,8 @@ specific module headers they require.
 - Testing: enable `CFL_TESTS` and run the suite through CTest as shown above.
 - Optional arena allocation: see [ARENA.md](ARENA.md) for lifecycle and
   ownership rules.
+- Decoding untrusted input: see [DECODING.md](DECODING.md) for the checked
+  arithmetic and byte cursor interfaces.
 - Performance tools: see [benchmarks/README.md](benchmarks/README.md) for the
   supplied benchmark programs and measurement guidance.
 
