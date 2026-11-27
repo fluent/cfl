@@ -149,7 +149,9 @@ int cfl_view_reserve(struct cfl_view *view, size_t capacity);
 
 /*
  * Free the copies and the variants of the current load and leave the view
- * empty. cfl_view_reset() calls it when there is something to free.
+ * empty and detached from the data it described: pending edits are dropped
+ * and a commit has nothing to write. The entry table and the copy mode are
+ * kept. cfl_view_reset() calls it when there is something to free.
  */
 void cfl_view_release(struct cfl_view *view);
 
@@ -484,7 +486,9 @@ static inline int cfl_view_set_null_at(struct cfl_view *view, size_t index)
  * Materialization
  * ---------------
  * The exit for code that needs native CFL objects. The results are owned by
- * the caller and independent of the view and of the data it describes.
+ * the caller and independent of the view and of the data it describes, with
+ * one exception: a CFL_VARIANT_REFERENCE value is the same pointer, and what
+ * it points to has to outlive the object, like for any CFL reference.
  *
  * cfl_view_materialize() builds a kvlist with the current content of the
  * view. The '_in' form allocates it from an arena; NULL selects the heap.
