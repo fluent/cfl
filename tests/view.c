@@ -792,6 +792,122 @@ static void growth(void)
     cfl_view_destroy(&view);
 }
 
+/* Keys of the list an edit borrows stay readable until the commit is done. */
+static void kvlist_commit_borrowed_keys(void)
+{
+    struct cfl_view view;
+    struct cfl_view_ref key_a;
+    struct cfl_view_ref key_b;
+    struct cfl_view_ref key_c;
+    struct cfl_variant *fetched;
+    struct cfl_kvlist *kvlist;
+    const char *expected[] = {"c", "renamed", "a", "b"};
+
+    kvlist = cfl_kvlist_create();
+    TEST_ASSERT(kvlist != NULL);
+    TEST_ASSERT(cfl_kvlist_insert_string(kvlist, "a", "1") == 0);
+    TEST_ASSERT(cfl_kvlist_insert_string(kvlist, "b", "2") == 0);
+    TEST_ASSERT(cfl_kvlist_insert_string(kvlist, "c", "3") == 0);
+
+    cfl_view_init(&view);
+    TEST_ASSERT(cfl_view_kvlist_load(&view, kvlist) == 0);
+    key_a = cfl_view_entry_at(&view, 0)->key;
+    key_b = cfl_view_entry_at(&view, 1)->key;
+    key_c = cfl_view_entry_at(&view, 2)->key;
+
+    /* two pairs trade names, and a new pair takes the name of a renamed one */
+    TEST_CHECK(cfl_view_rename_at(&view, 0, key_c.data, key_c.size) == 0);
+    TEST_CHECK(cfl_view_rename_at(&view, 2, key_a.data, key_a.size) == 0);
+    TEST_CHECK(cfl_view_rename_at(&view, 1, KEY("renamed")) == 0);
+    TEST_CHECK(cfl_view_append_string(&view, key_b.data, key_b.size, KEY("4")) == 0);
+
+    TEST_CHECK(cfl_view_kvlist_commit(&view) == 0);
+    check_keys(kvlist, expected, 4);
+    fetched = cfl_kvlist_fetch(kvlist, "c");
+    TEST_CHECK(fetched != NULL && strcmp(fetched->data.as_string, "1") == 0);
+    fetched = cfl_kvlist_fetch(kvlist, "a");
+    TEST_CHECK(fetched != NULL && strcmp(fetched->data.as_string, "3") == 0);
+    fetched = cfl_kvlist_fetch(kvlist, "b");
+    TEST_CHECK(fetched != NULL && strcmp(fetched->data.as_string, "4") == 0);
+
+    /* the view describes the list as it is now */
+    TEST_CHECK(cfl_view_find(&view, KEY("renamed")) == 1);
+    TEST_CHECK(cfl_view_modified(&view) == 0);
+
+    cfl_view_destroy(&view);
+    cfl_kvlist_destroy(kvlist);
+}
+
+/* A released view is detached: its pending edits cannot reach the list. */
+static void release_detaches(void)
+{
+    struct cfl_view view;
+    struct cfl_kvlist *kvlist;
+    const char *expected[] = {"a", "b"};
+
+    kvlist = cfl_kvlist_create();
+    TEST_ASSERT(kvlist != NULL);
+    TEST_ASSERT(cfl_kvlist_insert_string(kvlist, "a", "1") == 0);
+    TEST_ASSERT(cfl_kvlist_insert_string(kvlist, "b", "2") == 0);
+
+    cfl_view_init(&view);
+    TEST_ASSERT(cfl_view_kvlist_load(&view, kvlist) == 0);
+    TEST_CHECK(cfl_view_rename_at(&view, 0, KEY("renamed")) == 0);
+
+    cfl_view_release(&view);
+    TEST_CHECK(cfl_view_count(&view) == 0);
+    TEST_CHECK(cfl_view_modified(&view) == 0);
+    TEST_CHECK(cfl_view_kvlist_commit(&view) != 0);
+    check_keys(kvlist, expected, 2);
+
+    /* an edit after the release has no list to go to either */
+    TEST_CHECK(cfl_view_append_string(&view, KEY("c"), KEY("3")) == 0);
+    TEST_CHECK(cfl_view_kvlist_commit(&view) != 0);
+    check_keys(kvlist, expected, 2);
+
+    /* the view is reusable */
+    TEST_CHECK(cfl_view_kvlist_load(&view, kvlist) == 0);
+    TEST_CHECK(cfl_view_count(&view) == 2);
+    TEST_CHECK(cfl_view_kvlist_commit(&view) == 0);
+    check_keys(kvlist, expected, 2);
+
+    cfl_view_destroy(&view);
+    cfl_kvlist_destroy(kvlist);
+}
+
+/* A container variant created without its container is copied as it is. */
+static void null_containers(void)
+{
+    struct cfl_view view;
+    struct cfl_variant *value;
+    struct cfl_variant *copy;
+    struct cfl_kvlist *kvlist;
+
+    cfl_view_init(&view);
+
+    value = cfl_variant_create_from_array(NULL);
+    TEST_ASSERT(value != NULL);
+    TEST_ASSERT(cfl_view_append_variant(&view, KEY("list"), value) == 0);
+    value = cfl_variant_create_from_kvlist(NULL);
+    TEST_ASSERT(value != NULL);
+    TEST_ASSERT(cfl_view_append_variant(&view, KEY("map"), value) == 0);
+
+    copy = cfl_view_materialize_at(&view, 0);
+    TEST_CHECK(copy != NULL && copy->type == CFL_VARIANT_ARRAY &&
+               copy->data.as_array == NULL);
+    cfl_variant_destroy(copy);
+    copy = cfl_view_materialize_at(&view, 1);
+    TEST_CHECK(copy != NULL && copy->type == CFL_VARIANT_KVLIST &&
+               copy->data.as_kvlist == NULL);
+    cfl_variant_destroy(copy);
+
+    kvlist = cfl_view_materialize(&view);
+    TEST_CHECK(kvlist != NULL && cfl_kvlist_count(kvlist) == 2);
+    cfl_kvlist_destroy(kvlist);
+
+    cfl_view_destroy(&view);
+}
+
 TEST_LIST = {
     {"kvlist_read", kvlist_read},
     {"find_modes", find_modes},
@@ -800,6 +916,9 @@ TEST_LIST = {
     {"copy_mode", copy_mode},
     {"variants", variants},
     {"kvlist_commit_objects", kvlist_commit_objects},
+    {"kvlist_commit_borrowed_keys", kvlist_commit_borrowed_keys},
+    {"release_detaches", release_detaches},
+    {"null_containers", null_containers},
     {"arena_objects", arena_objects},
     {"custom_backend", custom_backend},
     {"growth", growth},
