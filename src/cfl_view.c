@@ -96,16 +96,10 @@ int cfl_view_reserve(struct cfl_view *view, size_t capacity)
     return 0;
 }
 
-const char *cfl_view_store(struct cfl_view *view, const char *data, size_t size)
+/* 'size' bytes of the view storage, which is created on first use. */
+static char *storage_alloc(struct cfl_view *view, size_t size)
 {
-    const char *copy;
-
-    if (size == 0) {
-        return "";
-    }
-    if (data == NULL) {
-        return NULL;
-    }
+    char *block;
 
     if (view->storage == NULL) {
         view->storage = cfl_arena_create(CFL_VIEW_STORAGE_CHUNK_SIZE);
@@ -114,12 +108,45 @@ const char *cfl_view_store(struct cfl_view *view, const char *data, size_t size)
         }
     }
 
-    copy = cfl_arena_memdup(view->storage, data, size);
-    if (copy != NULL) {
+    block = cfl_arena_malloc(view->storage, size);
+    if (block != NULL) {
         view->release = CFL_TRUE;
     }
 
+    return block;
+}
+
+const char *cfl_view_store(struct cfl_view *view, const char *data, size_t size)
+{
+    char *copy;
+
+    if (size == 0) {
+        return "";
+    }
+    if (data == NULL) {
+        return NULL;
+    }
+
+    copy = storage_alloc(view, size);
+    if (copy != NULL) {
+        memcpy(copy, data, size);
+    }
+
     return copy;
+}
+
+/*
+ * Room for one more entry. An append asks for it before it copies anything:
+ * a copy cannot be taken back, and a call that fails must not leave one
+ * behind in the storage.
+ */
+static int entry_room(struct cfl_view *view)
+{
+    if (view->count < view->capacity) {
+        return 0;
+    }
+
+    return cfl_view_reserve(view, view->capacity ? view->capacity * 2 : 16);
 }
 
 /* Apply the ownership mode of the view to bytes received by an edit. */
@@ -292,21 +319,54 @@ int cfl_view_get(struct cfl_view *view, const char *key, size_t key_size,
 int cfl_view_append(struct cfl_view *view, const char *key, size_t key_size,
                     const struct cfl_view_value *value)
 {
+    char *block;
+    size_t value_size;
+    const char *value_data;
     struct cfl_view_ref name;
     struct cfl_view_value literal;
     struct cfl_view_entry *entry;
 
-    /* check the key before the value is copied, a copy cannot be undone */
-    if ((key_size > 0 && key == NULL) ||
-        edit_value(view, value, &literal) != 0 ||
-        edit_ref(view, key, key_size, &name) != 0) {
+    if (value == NULL || (key_size > 0 && key == NULL) || entry_room(view) != 0) {
+        return -1;
+    }
+
+    if (view->copy &&
+        (value->type == CFL_VARIANT_STRING || value->type == CFL_VARIANT_BYTES)) {
+        /* the key and the value in one allocation: both are copied or none */
+        value_data = value->data.as_bytes.data;
+        value_size = value->data.as_bytes.size;
+        if ((value_size > 0 && value_data == NULL) || key_size > SIZE_MAX - value_size) {
+            return -1;
+        }
+
+        block = NULL;
+        if (key_size + value_size > 0) {
+            block = storage_alloc(view, key_size + value_size);
+            if (block == NULL) {
+                return -1;
+            }
+        }
+        name.data = "";
+        name.size = key_size;
+        if (key_size > 0) {
+            memcpy(block, key, key_size);
+            name.data = block;
+        }
+        literal.type = value->type;
+        literal.data.as_bytes.data = "";
+        literal.data.as_bytes.size = value_size;
+        if (value_size > 0) {
+            memcpy(block + key_size, value_data, value_size);
+            literal.data.as_bytes.data = block + key_size;
+        }
+    }
+    else if (edit_value(view, value, &literal) != 0 ||
+             edit_ref(view, key, key_size, &name) != 0) {
+        /* the key is the only copy these make, and the last thing to fail */
         return -1;
     }
 
     entry = cfl_view_next_entry(view);
-    if (entry == NULL) {
-        return -1;
-    }
     entry->key = name;
     entry->origin = CFL_VIEW_ENTRY_LITERAL;
     entry->key_changed = CFL_FALSE;
@@ -357,18 +417,19 @@ int cfl_view_append_variant(struct cfl_view *view, const char *key, size_t key_s
     struct cfl_view_ref name;
     struct cfl_view_entry *entry;
 
-    if (value == NULL || edit_ref(view, key, key_size, &name) != 0) {
+    if (value == NULL || (key_size > 0 && key == NULL) || entry_room(view) != 0) {
         return -1;
     }
     if (cfl_container_adopt_variant(value) != 0) {
         return -1;
     }
-
-    entry = cfl_view_next_entry(view);
-    if (entry == NULL) {
+    /* the key is copied last: nothing after it can fail */
+    if (edit_ref(view, key, key_size, &name) != 0) {
         cfl_container_release_variant(value);
         return -1;
     }
+
+    entry = cfl_view_next_entry(view);
     entry->key = name;
     entry_set_variant(view, entry, value);
 
