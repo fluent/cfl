@@ -218,11 +218,17 @@ int length;
 
 cfl_view_init(&view);
 cfl_view_copy_set(&view, CFL_TRUE);
-cfl_view_kvlist_load(&view, attributes);
+if (cfl_view_kvlist_load(&view, attributes) != 0) {
+    cfl_view_destroy(&view);
+    return -1;
+}
 
 /* 'buffer' can be reused immediately: the view holds its own copy */
 length = snprintf(buffer, sizeof(buffer), "pod-%d", pod_index);
-cfl_view_append_string(&view, "k8s.pod.name", 12, buffer, (size_t) length);
+if (cfl_view_append_string(&view, "k8s.pod.name", 12, buffer, (size_t) length) != 0) {
+    cfl_view_destroy(&view);
+    return -1;
+}
 ```
 
 ## Native kvlist backend
@@ -250,26 +256,28 @@ list and the view stay valid.
 ```c
 struct cfl_view view;
 int64_t position;
+int result;
 
 cfl_view_init(&view);
-if (cfl_view_kvlist_load(&view, attributes) != 0) {
-    cfl_view_destroy(&view);
-    return -1;
+result = cfl_view_kvlist_load(&view, attributes);
+
+if (result == 0) {
+    position = cfl_view_find(&view, "http.url", 8);
+    if (position >= 0) {
+        result = cfl_view_rename_at(&view, (size_t) position, "url.full", 8);
+    }
+}
+if (result == 0 && cfl_view_find(&view, "team", 4) < 0) {
+    result = cfl_view_append_string(&view, "team", 4, "store", 5);
 }
 
-position = cfl_view_find(&view, "http.url", 8);
-if (position >= 0) {
-    cfl_view_rename_at(&view, (size_t) position, "url.full", 8);
-}
-if (cfl_view_find(&view, "team", 4) < 0) {
-    cfl_view_append_string(&view, "team", 4, "store", 5);
-}
-
-if (cfl_view_kvlist_commit(&view) != 0) {
-    cfl_view_destroy(&view);
-    return -1;
+/* a failed edit leaves the list as it was: nothing is committed */
+if (result == 0) {
+    result = cfl_view_kvlist_commit(&view);
 }
 cfl_view_destroy(&view);
+
+return result;
 ```
 
 ## Writing a backend
