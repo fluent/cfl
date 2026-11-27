@@ -316,6 +316,7 @@ static void copy_mode(void)
     struct cfl_view view;
     struct cfl_view_value value;
     const char *stored;
+    size_t used;
 
     cfl_view_init(&view);
     cfl_view_reset(&view, NULL, NULL);
@@ -346,6 +347,28 @@ static void copy_mode(void)
     TEST_CHECK(value.type == CFL_VARIANT_BYTES && ref_is(&value.data.as_bytes, "red"));
     TEST_CHECK(cfl_view_get(&view, KEY("bravo"), &value) == 1);
     TEST_CHECK(value.type == CFL_VARIANT_STRING && ref_is(&value.data.as_bytes, "red"));
+
+    /* a rejected append leaves no copy behind in the storage */
+    used = cfl_arena_bytes_used(view.storage);
+    value.type = CFL_VARIANT_STRING;
+    value.data.as_bytes.data = text;
+    value.data.as_bytes.size = sizeof(text);
+    TEST_CHECK(cfl_view_append(&view, NULL, 4, &value) != 0);
+    value.data.as_bytes.data = NULL;
+    TEST_CHECK(cfl_view_append(&view, KEY("delta"), &value) != 0);
+    value.type = CFL_VARIANT_ARRAY;
+    TEST_CHECK(cfl_view_append(&view, KEY("delta"), &value) != 0);
+    TEST_CHECK(cfl_view_append_variant(&view, KEY("delta"), NULL) != 0);
+    TEST_CHECK(cfl_view_count(&view) == 2);
+    TEST_CHECK(cfl_arena_bytes_used(view.storage) == used);
+
+    /* empty keys and values are copied as empty */
+    TEST_CHECK(cfl_view_append_string(&view, NULL, 0, NULL, 0) == 0);
+    TEST_CHECK(cfl_view_entry_at(&view, 2)->key.size == 0);
+    TEST_CHECK(cfl_view_get(&view, "", 0, &value) == 1);
+    TEST_CHECK(value.type == CFL_VARIANT_STRING && value.data.as_bytes.size == 0);
+    TEST_CHECK(cfl_arena_bytes_used(view.storage) == used);
+    TEST_CHECK(cfl_view_remove_at(&view, 2) == 0);
 
     stored = cfl_view_store(&view, KEY("kept"));
     TEST_CHECK(stored != NULL && memcmp(stored, "kept", 4) == 0);
