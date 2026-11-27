@@ -57,6 +57,11 @@ void cfl_view_release(struct cfl_view *view)
         cfl_arena_reset(view->storage);
     }
     view->release = CFL_FALSE;
+
+    /* an empty view describes nothing: no commit can reach the old data */
+    view->backend = NULL;
+    view->context = NULL;
+    view->modified = CFL_FALSE;
 }
 
 void cfl_view_destroy(struct cfl_view *view)
@@ -291,7 +296,9 @@ int cfl_view_append(struct cfl_view *view, const char *key, size_t key_size,
     struct cfl_view_value literal;
     struct cfl_view_entry *entry;
 
-    if (edit_value(view, value, &literal) != 0 ||
+    /* check the key before the value is copied, a copy cannot be undone */
+    if ((key_size > 0 && key == NULL) ||
+        edit_value(view, value, &literal) != 0 ||
         edit_ref(view, key, key_size, &name) != 0) {
         return -1;
     }
@@ -611,8 +618,15 @@ static struct cfl_variant *variant_clone(struct cfl_arena *arena,
     case CFL_VARIANT_REFERENCE:
         return cfl_variant_create_from_reference_in(arena, source->data.as_reference);
     case CFL_VARIANT_ARRAY:
+        if (source->data.as_array == NULL) {
+            /* a variant created without its container stays without it */
+            return cfl_variant_create_from_array_in(arena, NULL);
+        }
         return array_clone(arena, source->data.as_array);
     case CFL_VARIANT_KVLIST:
+        if (source->data.as_kvlist == NULL) {
+            return cfl_variant_create_from_kvlist_in(arena, NULL);
+        }
         return kvlist_clone(arena, source->data.as_kvlist);
     }
 
@@ -807,9 +821,26 @@ static int kvlist_commit_entry(struct cfl_kvlist *kvlist, struct cfl_view_entry 
     return 0;
 }
 
+/* Free the renamed keys a commit staged and could not install. */
+static void kvlist_commit_unstage(struct cfl_view *view)
+{
+    size_t index;
+    struct cfl_view_entry *entry;
+
+    for (index = 0; index < view->count; index++) {
+        entry = &view->entries[index];
+        if (entry->origin == CFL_VIEW_ENTRY_SOURCE && entry->key_changed &&
+            entry->cache.data != NULL) {
+            cfl_sds_destroy((cfl_sds_t) entry->cache.data);
+            entry->cache.data = NULL;
+        }
+    }
+}
+
 int cfl_view_kvlist_commit(struct cfl_view *view)
 {
     size_t index;
+    cfl_sds_t staged;
     struct cfl_list *head;
     struct cfl_list *tmp;
     struct cfl_list *anchor;
@@ -826,18 +857,34 @@ int cfl_view_kvlist_commit(struct cfl_view *view)
 
     kvlist = view->context;
 
-    /* Allocate every renamed key first: a failure here leaves the pairs alone. */
+    /*
+     * Stage every renamed key first, next to the key it replaces. The keys of
+     * the list stay as they are until every edit has read what it borrows:
+     * a new key or a new pair may be named after bytes of a key that is
+     * renamed in this same commit.
+     */
+    for (index = 0; index < view->count; index++) {
+        entry = &view->entries[index];
+        if (entry->origin == CFL_VIEW_ENTRY_SOURCE && entry->key_changed) {
+            entry->cache.data = NULL;
+        }
+    }
     for (index = 0; index < view->count; index++) {
         entry = &view->entries[index];
         if (entry->origin == CFL_VIEW_ENTRY_SOURCE && entry->key_changed) {
             pair = entry->source.pointer;
-            if (cfl_kvpair_key_set_s(pair, (char *) entry->key.data,
-                                     entry->key.size) != 0) {
+            if (entry->key.size > INT_MAX) {
+                kvlist_commit_unstage(view);
                 return -1;
             }
-            /* the key now lives in the list, like every other source key */
-            entry->key.data = pair->key;
-            entry->key_changed = CFL_FALSE;
+            staged = cfl_sds_create_len_in(pair->arena,
+                                           entry->key.size > 0 ? entry->key.data : "",
+                                           (int) entry->key.size);
+            if (staged == NULL) {
+                kvlist_commit_unstage(view);
+                return -1;
+            }
+            entry->cache.data = staged;
         }
     }
 
@@ -855,6 +902,8 @@ int cfl_view_kvlist_commit(struct cfl_view *view)
             continue;
         }
         if (entry->key.size > INT_MAX || kvlist_commit_entry(kvlist, entry) != 0) {
+            /* the renames stay pending, with the keys they borrow intact */
+            kvlist_commit_unstage(view);
             return -1;
         }
         pair = cfl_list_entry_last(&kvlist->list, struct cfl_kvpair, _head);
@@ -867,6 +916,20 @@ int cfl_view_kvlist_commit(struct cfl_view *view)
         entry->key.data = pair->key;
         entry->key_changed = CFL_FALSE;
         entry->source.pointer = pair;
+    }
+
+    /* Nothing borrows from the old keys anymore, and nothing can fail. */
+    for (index = 0; index < view->count; index++) {
+        entry = &view->entries[index];
+        if (entry->origin == CFL_VIEW_ENTRY_SOURCE && entry->key_changed) {
+            pair = entry->source.pointer;
+            cfl_sds_destroy(pair->key);
+            pair->key = (cfl_sds_t) entry->cache.data;
+            /* the key now lives in the list, like every other source key */
+            entry->key.data = pair->key;
+            entry->key_changed = CFL_FALSE;
+            entry->cache.data = NULL;
+        }
     }
 
     /*
