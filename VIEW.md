@@ -188,8 +188,10 @@ struct cfl_variant *cfl_view_materialize_at(struct cfl_view *view, size_t index)
 
 These build native CFL objects from the current content of the view, edits
 included. The results belong to the caller and are independent of the view and
-of the source data. `cfl_view_materialize_in()` allocates from an arena, and
-`cfl_view_materialize_at()` builds one heap variant from one value.
+of the source data, with one exception: a `CFL_VARIANT_REFERENCE` value is
+copied as the same pointer, and what it points to has to outlive the result,
+like for any CFL reference. `cfl_view_materialize_in()` allocates from an
+arena, and `cfl_view_materialize_at()` builds one heap variant from one value.
 
 ## Ownership and lifetime
 
