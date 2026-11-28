@@ -28,6 +28,13 @@
 /* Chunk size of the storage that holds the copies of a view. */
 #define CFL_VIEW_STORAGE_CHUNK_SIZE  1024
 
+/*
+ * Storage a view keeps from one load to the next. A load that needed more
+ * gives it back on release, so one large value does not stay reserved for
+ * the life of the view.
+ */
+#define CFL_VIEW_STORAGE_KEEP_SIZE   (64 * 1024)
+
 void cfl_view_init(struct cfl_view *view)
 {
     memset(view, 0, sizeof(struct cfl_view));
@@ -54,7 +61,13 @@ void cfl_view_release(struct cfl_view *view)
     /* nothing refers to the copies once the entries are gone */
     view->count = 0;
     if (view->storage != NULL) {
-        cfl_arena_reset(view->storage);
+        if (cfl_arena_bytes_reserved(view->storage) > CFL_VIEW_STORAGE_KEEP_SIZE) {
+            cfl_arena_destroy(view->storage);
+            view->storage = NULL;
+        }
+        else {
+            cfl_arena_reset(view->storage);
+        }
     }
     view->release = CFL_FALSE;
 
@@ -323,10 +336,18 @@ int cfl_view_append(struct cfl_view *view, const char *key, size_t key_size,
     size_t value_size;
     const char *value_data;
     struct cfl_view_ref name;
+    struct cfl_view_value input;
     struct cfl_view_value literal;
     struct cfl_view_entry *entry;
 
-    if (value == NULL || (key_size > 0 && key == NULL) || entry_room(view) != 0) {
+    if (value == NULL || (key_size > 0 && key == NULL)) {
+        return -1;
+    }
+
+    /* 'value' can be the value of an entry, and making room moves the table */
+    input = *value;
+    value = &input;
+    if (entry_room(view) != 0) {
         return -1;
     }
 
@@ -377,9 +398,44 @@ int cfl_view_append(struct cfl_view *view, const char *key, size_t key_size,
     return 0;
 }
 
+/*
+ * Whether a string or bytes literal borrows from the string or bytes object
+ * of a variant entry, which is what reading that entry returns.
+ */
+static int literal_borrows_entry(const struct cfl_view_value *literal,
+                                 const struct cfl_view_entry *entry)
+{
+    const char *data;
+    const char *owned;
+    struct cfl_variant *variant;
+
+    if (entry->origin != CFL_VIEW_ENTRY_VARIANT ||
+        (literal->type != CFL_VARIANT_STRING && literal->type != CFL_VARIANT_BYTES) ||
+        literal->data.as_bytes.size == 0) {
+        return CFL_FALSE;
+    }
+
+    variant = entry->value.data.as_variant;
+    if (variant->type == CFL_VARIANT_STRING) {
+        owned = variant->data.as_string;
+    }
+    else if (variant->type == CFL_VARIANT_BYTES) {
+        owned = variant->data.as_bytes;
+    }
+    else {
+        return CFL_FALSE;
+    }
+
+    data = literal->data.as_bytes.data;
+
+    return owned != NULL && (uintptr_t) data >= (uintptr_t) owned &&
+           (uintptr_t) data < (uintptr_t) owned + cfl_variant_size_get(variant);
+}
+
 int cfl_view_set_at(struct cfl_view *view, size_t index,
                     const struct cfl_view_value *value)
 {
+    const char *copy;
     struct cfl_view_value literal;
     struct cfl_view_entry *entry;
 
@@ -389,6 +445,15 @@ int cfl_view_set_at(struct cfl_view *view, size_t index,
 
     /* The pair stops referring to the original data, which stays untouched. */
     entry = &view->entries[index];
+    if (!view->copy && literal_borrows_entry(&literal, entry)) {
+        /* the object it replaces owns the bytes: keep them past its end */
+        copy = cfl_view_store(view, literal.data.as_bytes.data,
+                              literal.data.as_bytes.size);
+        if (copy == NULL) {
+            return -1;
+        }
+        literal.data.as_bytes.data = copy;
+    }
     entry_drop_variant(entry);
     entry->origin = CFL_VIEW_ENTRY_LITERAL;
     entry->key_changed = CFL_FALSE;
@@ -627,6 +692,7 @@ static struct cfl_variant *array_clone(struct cfl_arena *arena,
     if (array == NULL) {
         return NULL;
     }
+    cfl_array_resizable(array, source->resizable ? CFL_TRUE : CFL_FALSE);
 
     for (index = 0; index < source->entry_count; index++) {
         value = variant_clone(arena, source->entries[index]);
@@ -804,6 +870,7 @@ static struct cfl_variant *kvlist_materialize(struct cfl_view *view,
 }
 
 static const struct cfl_view_backend kvlist_backend = {
+    sizeof(struct cfl_view_backend),
     "cfl_kvlist",
     kvlist_value,
     kvlist_materialize,
@@ -822,6 +889,8 @@ int cfl_view_kvlist_load(struct cfl_view *view, struct cfl_kvlist *kvlist)
     cfl_list_foreach(head, &kvlist->list) {
         pair = cfl_list_entry(head, struct cfl_kvpair, _head);
         if (cfl_view_load_pointer(view, pair->key, cfl_sds_len(pair->key), pair) != 0) {
+            /* part of the list is not a view of it: a commit would drop the rest */
+            cfl_view_reset(view, NULL, NULL);
             return -1;
         }
     }

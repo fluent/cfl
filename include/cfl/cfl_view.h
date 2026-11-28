@@ -68,6 +68,11 @@
  *   own storage instead, which is released on reset.
  * - A view owns its entry table, its copies, and the variants handed to
  *   cfl_view_append_variant() and cfl_view_set_variant_at().
+ * - What a read returns from a variant entry (a cfl_view_value, or anything
+ *   reached through 'as_variant') belongs to that variant: it is gone when
+ *   the pair is removed or its value replaced, and when the view is reset.
+ * - A pointer returned by cfl_view_entry_at() is valid until the next
+ *   append, removal, reserve or reset.
  * - A view is not thread safe. It can move between threads only together
  *   with its data, and never while a call is using it.
  */
@@ -108,7 +113,8 @@ struct cfl_view_entry {
         int64_t index;
         void *pointer;
     } source;                              /* backend handle of the pair */
-    struct cfl_view_ref cache;             /* backend private, source entries only */
+    struct cfl_view_ref cache;             /* backend private, source entries only:
+                                            * empty unless the backend loads it */
     struct cfl_view_value value;           /* literal and variant entries only */
 };
 
@@ -118,8 +124,13 @@ struct cfl_view;
  * What a data source implements. Both callbacks receive source entries only.
  * A backend that cannot provide one of them leaves it NULL; the matching
  * calls then fail for its source entries.
+ *
+ * 'struct_size' is sizeof(struct cfl_view_backend) as the backend was
+ * compiled. Members added to the end of this structure in a later version
+ * are only read from a backend that is large enough to have them.
  */
 struct cfl_view_backend {
+    size_t struct_size;
     const char *name;
 
     /* Read a source value. Scalars are returned without allocating. */
@@ -185,6 +196,11 @@ static inline void cfl_view_reset(struct cfl_view *view,
     view->modified = 0;
 }
 
+/*
+ * Backend side: the next free slot of the entry table, or NULL. The slot is
+ * not initialized: a backend that uses it instead of the loaders below sets
+ * every member of the entry.
+ */
 static inline struct cfl_view_entry *cfl_view_next_entry(struct cfl_view *view)
 {
     if (view->count == view->capacity &&
@@ -195,7 +211,12 @@ static inline struct cfl_view_entry *cfl_view_next_entry(struct cfl_view *view)
     return &view->entries[view->count++];
 }
 
-/* Backend side: declare a pair of the original data. */
+/*
+ * Backend side: declare a pair of the original data. The handle is an index
+ * or a pointer, whichever finds the pair again. cfl_view_load_span() also
+ * fills the 'cache' reference of the entry, for example with the encoded
+ * value of the pair; the other two leave it empty.
+ */
 static inline int cfl_view_load_index(struct cfl_view *view,
                                       const char *key, size_t key_size,
                                       int64_t index)
@@ -211,6 +232,8 @@ static inline int cfl_view_load_index(struct cfl_view *view,
     entry->origin = CFL_VIEW_ENTRY_SOURCE;
     entry->key_changed = 0;
     entry->source.index = index;
+    entry->cache.data = NULL;
+    entry->cache.size = 0;
 
     return 0;
 }
@@ -230,6 +253,30 @@ static inline int cfl_view_load_pointer(struct cfl_view *view,
     entry->origin = CFL_VIEW_ENTRY_SOURCE;
     entry->key_changed = 0;
     entry->source.pointer = pointer;
+    entry->cache.data = NULL;
+    entry->cache.size = 0;
+
+    return 0;
+}
+
+static inline int cfl_view_load_span(struct cfl_view *view,
+                                     const char *key, size_t key_size,
+                                     void *pointer,
+                                     const char *data, size_t size)
+{
+    struct cfl_view_entry *entry;
+
+    entry = cfl_view_next_entry(view);
+    if (entry == NULL) {
+        return -1;
+    }
+    entry->key.data = key;
+    entry->key.size = key_size;
+    entry->origin = CFL_VIEW_ENTRY_SOURCE;
+    entry->key_changed = 0;
+    entry->source.pointer = pointer;
+    entry->cache.data = data;
+    entry->cache.size = size;
 
     return 0;
 }
@@ -239,9 +286,20 @@ static inline size_t cfl_view_count(const struct cfl_view *view)
     return view->count;
 }
 
+/* Whether the view was edited since it was loaded, or since the mark was cleared. */
 static inline int cfl_view_modified(const struct cfl_view *view)
 {
     return view->modified;
+}
+
+/*
+ * Encoder side: clear the mark once the edits were written somewhere else,
+ * so the view reads as unmodified until the next edit. The entries are not
+ * changed. cfl_view_kvlist_commit() does it for a kvlist.
+ */
+static inline void cfl_view_modified_clear(struct cfl_view *view)
+{
+    view->modified = 0;
 }
 
 static inline const struct cfl_view_entry *cfl_view_entry_at(const struct cfl_view *view,
@@ -262,7 +320,7 @@ static inline int64_t cfl_view_find(const struct cfl_view *view,
 
     for (index = 0; index < view->count; index++) {
         if (view->entries[index].key.size == key_size &&
-            memcmp(view->entries[index].key.data, key, key_size) == 0) {
+            (key_size == 0 || memcmp(view->entries[index].key.data, key, key_size) == 0)) {
             return (int64_t) index;
         }
     }
@@ -507,9 +565,14 @@ struct cfl_variant *cfl_view_materialize_at(struct cfl_view *view, size_t index)
  * pairs without an entry are destroyed, renamed pairs get the new key, and
  * the pairs added or replaced through the view are created at the position
  * they have in the view. After a successful commit every entry is a source
- * entry of the list again. A commit only fails when an allocation fails. It
- * can then leave the list with part of the edits applied, including both the
- * old and the new pair of a replaced value; the list and the view stay valid.
+ * entry of the list again. A commit fails when an allocation fails, when a
+ * key or a string or bytes value is larger than INT_MAX, or when the list
+ * rejects an object (one that contains the list, or nests too deep). It can
+ * then leave the list with part of the edits applied, including both the old
+ * and the new pair of a replaced value; the list and the view stay valid.
+ *
+ * A load that fails leaves the view empty and detached from the list, so a
+ * commit after it has nothing to write.
  */
 int cfl_view_kvlist_load(struct cfl_view *view, struct cfl_kvlist *kvlist);
 int cfl_view_kvlist_commit(struct cfl_view *view);
