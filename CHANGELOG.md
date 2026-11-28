@@ -13,6 +13,14 @@ This file records the notable changes in each CFL release.
   values, owned CFL objects, materialization into a kvlist or arena, and
   committing edits back to a kvlist. The interface can change in any release
   while it is experimental.
+- Hardened map views before their first release: loaders no longer leave a
+  stale `cache` reference in a reused entry, appending the value of an entry
+  and replacing a string object with its own bytes are safe, a failed
+  `cfl_view_kvlist_load()` leaves an empty view instead of a partial one, an
+  empty key may be `NULL`, copy storage above 64 KiB is given back on release,
+  and materialized arrays keep their `resizable` setting. Backends now declare
+  `struct_size`, and `cfl_view_load_span()` and `cfl_view_modified_clear()`
+  were added.
 - Added public request-lifetime arena allocation, duplication helpers,
   allocator callbacks, and optional bounded geometric chunk growth.
 - Reduced arena memory for CFL object graphs: objects use their natural

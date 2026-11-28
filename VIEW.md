@@ -93,12 +93,18 @@ void cfl_view_destroy(struct cfl_view *view);
 int cfl_view_reserve(struct cfl_view *view, size_t capacity);
 void cfl_view_reset(struct cfl_view *view,
                     const struct cfl_view_backend *backend, void *context);
+void cfl_view_release(struct cfl_view *view);
 ```
 
 A view is a plain structure, usually embedded in its owner or placed on the
 stack. `cfl_view_init()` prepares it and `cfl_view_destroy()` releases
 everything it owns. `cfl_view_reset()` starts a new load and keeps the entry
 table allocation, so one view serves many maps without allocating again.
+
+`cfl_view_release()` frees the copies and the variants of the current load
+without starting a new one. The view is then empty and detached from the data
+it described: pending edits are dropped and a commit has nothing to write.
+`cfl_view_reset()` calls it when there is something to free.
 
 ### Reading
 
@@ -203,13 +209,24 @@ arena, and `cfl_view_materialize_at()` builds one heap variant from one value.
   callers whose keys and values come from long-lived configuration.
 - **Copy mode.** After `cfl_view_copy_set(view, CFL_TRUE)` the view copies the
   keys and the string or bytes values it receives into its own storage. The
-  copies are released on reset, and the storage is reused across loads.
+  copies are released on reset, and the storage is reused across loads. A
+  load that copied more than 64 KiB gives its storage back instead, so one
+  large value is not kept reserved for the life of the view.
   `cfl_view_store()` copies arbitrary bytes into the same storage.
 - **Variants.** The view takes ownership of a variant passed to
   `cfl_view_append_variant()` or `cfl_view_set_variant_at()` when the call
   succeeds, and destroys it when the pair is removed or replaced, or when the
   view is reset. The variant must not already belong to a container. An arena
   variant is accepted as long as its arena outlives the entry.
+- **Values read from a variant entry.** What `cfl_view_value_at()` returns
+  for a variant entry, and anything reached through `as_variant`, belongs to
+  that variant. It is gone when the pair is removed or its value replaced,
+  and when the view is reset. The one exception is handing the string or
+  bytes of such an entry back to `cfl_view_set_at()` at the same position:
+  the view keeps a copy.
+- **Entry pointers.** A pointer returned by `cfl_view_entry_at()` is valid
+  until the next append, removal, reserve, or reset. Passing the `value` of
+  an entry to `cfl_view_append()` is safe.
 - **Threads.** A view is not thread-safe. It can move between threads only
   together with its data, and never while a call is using it.
 
@@ -251,9 +268,14 @@ view move into the list, or are copied when the list uses a different
 allocator. After a successful commit every entry is a source entry again, so
 the view can keep being used.
 
-A commit fails only when an allocation fails. The list can then hold part of
-the edits, including both the old and the new pair of a replaced value. The
+A commit fails when an allocation fails, when a key or a string or bytes
+value is larger than `INT_MAX`, or when the list rejects an object: one that
+contains the list itself, or that nests too deep. The list can then hold part
+of the edits, including both the old and the new pair of a replaced value. The
 list and the view stay valid.
+
+A load that fails leaves the view empty and detached from the list, so a
+commit after it has nothing to write and returns an error.
 
 ```c
 struct cfl_view view;
@@ -288,6 +310,7 @@ A backend describes a data source through two optional callbacks:
 
 ```c
 struct cfl_view_backend {
+    size_t struct_size;
     const char *name;
     int (*value) (struct cfl_view *view, const struct cfl_view_entry *entry,
                   struct cfl_view_value *out);
@@ -296,6 +319,9 @@ struct cfl_view_backend {
 };
 ```
 
+- `struct_size` is `sizeof(struct cfl_view_backend)`. Members added to the end
+  of the structure in a later version are only read from a backend that is
+  large enough to have them.
 - `value` reads a source value without allocating. `out` arrives zeroed. For a
   container it sets only the type, unless a CFL object already exists.
 - `materialize` builds an owned heap variant from a source value, including
@@ -327,7 +353,7 @@ static int record_value(struct cfl_view *view,
 }
 
 static const struct cfl_view_backend record_backend = {
-    "record", record_value, NULL
+    sizeof(struct cfl_view_backend), "record", record_value, NULL
 };
 
 static int record_load(struct cfl_view *view, struct record *record)
@@ -347,10 +373,26 @@ static int record_load(struct cfl_view *view, struct record *record)
 }
 ```
 
+```c
+int cfl_view_load_index(struct cfl_view *view, const char *key, size_t key_size,
+                        int64_t index);
+int cfl_view_load_pointer(struct cfl_view *view, const char *key, size_t key_size,
+                          void *pointer);
+int cfl_view_load_span(struct cfl_view *view, const char *key, size_t key_size,
+                       void *pointer, const char *data, size_t size);
+struct cfl_view_entry *cfl_view_next_entry(struct cfl_view *view);
+```
+
 `cfl_view_load_index()` and `cfl_view_load_pointer()` store the handle the
 backend needs to find the pair again. Each entry also has a `cache` reference
-reserved for the backend, for example to remember where a value starts in a
-wire buffer.
+reserved for the backend. `cfl_view_load_span()` fills it, for example with
+the encoded value of the pair in a wire buffer, so the callbacks and the
+encoder do not parse the pair again; the other two loaders leave it empty. A
+key of size 0 can be a `NULL` pointer.
+
+`cfl_view_next_entry()` returns the next free slot of the entry table without
+initializing it. A backend that uses it instead of the loaders sets every
+member of the entry.
 
 ## Writing an encoder
 
@@ -404,7 +446,9 @@ An encoder that knows the backend can do better than this generic walk. When
 the source and target formats match, an unmodified source entry
 (`origin == CFL_VIEW_ENTRY_SOURCE` and `key_changed == 0`) can be copied as a
 raw span, and `cfl_view_modified()` tells whether the whole map can be copied
-unchanged.
+unchanged. An encoder that wrote the edits somewhere else calls
+`cfl_view_modified_clear()`, and the view reads as unmodified until the next
+edit; `cfl_view_kvlist_commit()` does it for a kvlist.
 
 ## Limits
 

@@ -647,12 +647,14 @@ static struct cfl_variant *external_materialize(struct cfl_view *view,
 }
 
 static const struct cfl_view_backend external_backend = {
+    sizeof(struct cfl_view_backend),
     "external",
     external_value,
     external_materialize,
 };
 
 static const struct cfl_view_backend opaque_backend = {
+    sizeof(struct cfl_view_backend),
     "opaque",
     NULL,
     NULL,
@@ -931,7 +933,186 @@ static void null_containers(void)
     cfl_view_destroy(&view);
 }
 
+/* A loader never leaves what an earlier load put in the cache of a slot. */
+static void loader_cache(void)
+{
+    struct cfl_view view;
+    const struct cfl_view_entry *entry;
+    char span[] = "encoded";
+    int pair;
+
+    cfl_view_init(&view);
+    cfl_view_reset(&view, &opaque_backend, NULL);
+    TEST_ASSERT(cfl_view_load_span(&view, KEY("a"), &pair, span, 7) == 0);
+    TEST_ASSERT(cfl_view_load_span(&view, KEY("b"), &pair, span, 7) == 0);
+    entry = cfl_view_entry_at(&view, 0);
+    TEST_CHECK(entry->origin == CFL_VIEW_ENTRY_SOURCE && entry->key_changed == 0);
+    TEST_CHECK(entry->source.pointer == &pair);
+    TEST_CHECK(entry->cache.data == span && entry->cache.size == 7);
+
+    /* the same slots, loaded without a span */
+    cfl_view_reset(&view, &opaque_backend, NULL);
+    TEST_ASSERT(cfl_view_load_pointer(&view, KEY("a"), &pair) == 0);
+    TEST_ASSERT(cfl_view_load_index(&view, KEY("b"), 7) == 0);
+    entry = cfl_view_entry_at(&view, 0);
+    TEST_CHECK(entry->cache.data == NULL && entry->cache.size == 0);
+    entry = cfl_view_entry_at(&view, 1);
+    TEST_CHECK(entry->source.index == 7);
+    TEST_CHECK(entry->cache.data == NULL && entry->cache.size == 0);
+
+    /* an encoder that wrote the edits somewhere else clears the mark */
+    TEST_CHECK(cfl_view_modified(&view) == 0);
+    TEST_CHECK(cfl_view_rename_at(&view, 0, KEY("renamed")) == 0);
+    TEST_CHECK(cfl_view_modified(&view) != 0);
+    cfl_view_modified_clear(&view);
+    TEST_CHECK(cfl_view_modified(&view) == 0);
+    TEST_CHECK(cfl_view_find(&view, KEY("renamed")) == 0);
+
+    cfl_view_destroy(&view);
+}
+
+/* An empty key can be a NULL pointer, in the source and in the lookup. */
+static void empty_keys(void)
+{
+    struct cfl_view view;
+
+    cfl_view_init(&view);
+    cfl_view_reset(&view, &opaque_backend, NULL);
+    TEST_ASSERT(cfl_view_load_index(&view, KEY("named"), 0) == 0);
+    TEST_ASSERT(cfl_view_load_index(&view, NULL, 0, 1) == 0);
+
+    TEST_CHECK(cfl_view_find(&view, "", 0) == 1);
+    TEST_CHECK(cfl_view_find(&view, NULL, 0) == 1);
+    TEST_CHECK(cfl_view_find_ex(&view, NULL, 0, CFL_KVLIST_MATCH_CASE_SENSITIVE) == 1);
+    TEST_CHECK(cfl_view_find_ex(&view, NULL, 0, CFL_KVLIST_MATCH_CASE_INSENSITIVE) == 1);
+    TEST_CHECK(cfl_view_find(&view, KEY("named")) == 0);
+
+    TEST_CHECK(cfl_view_remove_at(&view, 1) == 0);
+    TEST_CHECK(cfl_view_find(&view, NULL, 0) == -1);
+
+    cfl_view_destroy(&view);
+}
+
+/* A value read from the view can be handed back to it. */
+static void own_values(void)
+{
+    size_t index;
+    struct cfl_view view;
+    struct cfl_view_value value;
+    struct cfl_variant *variant;
+
+    cfl_view_init(&view);
+    cfl_view_reset(&view, &opaque_backend, NULL);
+
+    /* fill the table, so the next append has to move it */
+    TEST_ASSERT(cfl_view_reserve(&view, 4) == 0);
+    for (index = 0; index < 4; index++) {
+        TEST_ASSERT(cfl_view_append_int64(&view, KEY("k"), (int64_t) index + 40) == 0);
+    }
+    TEST_ASSERT(view.count == view.capacity);
+    TEST_CHECK(cfl_view_append(&view, KEY("copy"), &cfl_view_entry_at(&view, 0)->value) == 0);
+    TEST_ASSERT(cfl_view_value_at(&view, 4, &value) == 0);
+    TEST_CHECK(value.type == CFL_VARIANT_INT && value.data.as_int64 == 40);
+
+    /* the bytes of a string object, written back over the object that owns them */
+    variant = cfl_variant_create_from_string("payload-of-the-object");
+    TEST_ASSERT(variant != NULL);
+    TEST_ASSERT(cfl_view_append_variant(&view, KEY("object"), variant) == 0);
+    TEST_ASSERT(cfl_view_value_at(&view, 5, &value) == 0);
+    TEST_ASSERT(value.type == CFL_VARIANT_STRING);
+    TEST_CHECK(cfl_view_set_bytes_at(&view, 5, value.data.as_bytes.data + 8,
+                                     value.data.as_bytes.size - 8) == 0);
+    TEST_ASSERT(cfl_view_value_at(&view, 5, &value) == 0);
+    TEST_CHECK(value.type == CFL_VARIANT_BYTES && ref_is(&value.data.as_bytes, "of-the-object"));
+
+    /* and over a literal, where nothing is freed */
+    TEST_CHECK(cfl_view_set_string_at(&view, 5, value.data.as_bytes.data, 2) == 0);
+    TEST_ASSERT(cfl_view_value_at(&view, 5, &value) == 0);
+    TEST_CHECK(value.type == CFL_VARIANT_STRING && ref_is(&value.data.as_bytes, "of"));
+
+    cfl_view_destroy(&view);
+}
+
+/* One large copy is not kept reserved by the loads that follow. */
+static void storage_is_bounded(void)
+{
+    size_t size = 1024 * 1024;
+    char *large;
+    struct cfl_view view;
+    struct cfl_view_value value;
+
+    large = malloc(size);
+    TEST_ASSERT(large != NULL);
+    memset(large, 'x', size);
+
+    cfl_view_init(&view);
+    cfl_view_copy_set(&view, 1);
+
+    cfl_view_reset(&view, &opaque_backend, NULL);
+    TEST_ASSERT(cfl_view_append_string(&view, KEY("small"), KEY("value")) == 0);
+    cfl_view_reset(&view, &opaque_backend, NULL);
+    TEST_CHECK(view.storage != NULL);
+
+    TEST_ASSERT(cfl_view_append_string(&view, KEY("large"), large, size) == 0);
+    TEST_CHECK(cfl_arena_bytes_reserved(view.storage) >= size);
+    cfl_view_reset(&view, &opaque_backend, NULL);
+    TEST_CHECK(view.storage == NULL || cfl_arena_bytes_reserved(view.storage) < size);
+
+    /* the view copies again after giving the storage back */
+    TEST_ASSERT(cfl_view_append_string(&view, KEY("again"), large, 16) == 0);
+    TEST_ASSERT(cfl_view_value_at(&view, 0, &value) == 0);
+    TEST_CHECK(value.data.as_bytes.size == 16 && value.data.as_bytes.data != large);
+    TEST_CHECK(memcmp(value.data.as_bytes.data, large, 16) == 0);
+
+    cfl_view_destroy(&view);
+    free(large);
+}
+
+/* A materialized array accepts what the array it was copied from accepts. */
+static void resizable_arrays(void)
+{
+    struct cfl_view view;
+    struct cfl_array *array;
+    struct cfl_kvlist *kvlist;
+    struct cfl_kvlist *copy;
+    struct cfl_variant *fetched;
+
+    array = cfl_array_create(1);
+    TEST_ASSERT(array != NULL);
+    TEST_ASSERT(cfl_array_resizable(array, CFL_TRUE) == 0);
+    TEST_ASSERT(cfl_array_append_int64(array, 1) == 0);
+    kvlist = cfl_kvlist_create();
+    TEST_ASSERT(kvlist != NULL);
+    TEST_ASSERT(cfl_kvlist_insert_array(kvlist, "grows", array) == 0);
+    array = cfl_array_create(1);
+    TEST_ASSERT(array != NULL);
+    TEST_ASSERT(cfl_array_append_int64(array, 1) == 0);
+    TEST_ASSERT(cfl_kvlist_insert_array(kvlist, "fixed", array) == 0);
+
+    cfl_view_init(&view);
+    TEST_ASSERT(cfl_view_kvlist_load(&view, kvlist) == 0);
+    copy = cfl_view_materialize(&view);
+    TEST_ASSERT(copy != NULL);
+
+    fetched = cfl_kvlist_fetch(copy, "grows");
+    TEST_ASSERT(fetched != NULL && fetched->type == CFL_VARIANT_ARRAY);
+    TEST_CHECK(cfl_array_append_int64(fetched->data.as_array, 2) == 0);
+    TEST_CHECK(cfl_array_size(fetched->data.as_array) == 2);
+    fetched = cfl_kvlist_fetch(copy, "fixed");
+    TEST_ASSERT(fetched != NULL && fetched->type == CFL_VARIANT_ARRAY);
+    TEST_CHECK(cfl_array_append_int64(fetched->data.as_array, 2) != 0);
+
+    cfl_kvlist_destroy(copy);
+    cfl_view_destroy(&view);
+    cfl_kvlist_destroy(kvlist);
+}
+
 TEST_LIST = {
+    {"loader_cache", loader_cache},
+    {"empty_keys", empty_keys},
+    {"own_values", own_values},
+    {"storage_is_bounded", storage_is_bounded},
+    {"resizable_arrays", resizable_arrays},
     {"kvlist_read", kvlist_read},
     {"find_modes", find_modes},
     {"kvlist_edit_commit", kvlist_edit_commit},
